@@ -1,0 +1,21 @@
+# Install once:  uvx pre-commit install
+# Run on all files:  uvx pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=5000"]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+  - repo: local
+    hooks:
+      # Uses the locally installed gitleaks binary (winget install Gitleaks.Gitleaks)
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: gitleaks git --pre-commit --staged --redact --verbose
+        language: system
+        pass_filenames: false

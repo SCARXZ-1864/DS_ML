@@ -1,0 +1,43 @@
+# --- secrets ---
+.env
+.env.*
+!.env.example
+
+# --- data & model artifacts (never commit; see RISKS R23) ---
+data/
+models/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.npy
+*.parquet
+!pipeline/tests/fixtures/*.parquet
+mlruns/
+wandb/
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- node / next ---
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
