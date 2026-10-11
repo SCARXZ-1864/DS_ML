@@ -17,6 +17,15 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 
 ---
 
+### 2026-10-12 — CI secret-scan job failed on the first push
+- **Milestone:** M0
+- **Error:** `gitleaks/gitleaks-action@v2` → `ERROR: Unexpected exit code [1]` (CI run 38174301119). The other 4 jobs passed.
+- **Root cause:** not a real leak: `gitleaks git` over the same 8 commits locally reports "no leaks found". Not the org-licence requirement either, since the repo owner is a User account. The failure is in the action wrapper. Its most likely cause is the documented push-event behaviour of scanning `before..after`, where `before` is `0000000` on a new branch's first push. That can't be confirmed without authenticated log access.
+- **Fix:** replaced the wrapper with the pinned gitleaks CLI (v8.30.1, the same as local), running the identical full-history command `gitleaks git --redact --verbose .`.
+- **Files changed:** `.github/workflows/ci.yml`
+- **Verified by:** the local full-history scan, and the CI run after this commit (see the commit message / Actions tab)
+- **Attempts:** 1
+
 ### 2026-10-11 — Health check didn't forward the request id to the Space
 - **Milestone:** M0
 - **Error:** no exception. A local end-to-end run showed web request `e2e-1` logged in the inference service under a different id (`592c…`).
