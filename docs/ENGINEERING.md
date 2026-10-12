@@ -19,7 +19,7 @@ When any command fails (code, test, build, install, deploy):
 
 ## 2. Structured logging (both services)
 
-One JSON object per line, written to stdout (Vercel and HF Spaces both capture stdout).
+One JSON object per line, written to stdout (Vercel and Modal both capture stdout).
 
 | Field | Type | Required | Meaning |
 |-------|------|----------|---------|
@@ -39,8 +39,8 @@ One JSON object per line, written to stdout (Vercel and HF Spaces both capture s
 ### Request ID propagation
 
 - The Next.js route reads `x-request-id` from the incoming request, or generates a UUID.
-- It sends `x-request-id` on every outbound call to the Space.
-- The Space middleware reads it (or generates one) and echoes it in the response header.
+- It sends `x-request-id` on every outbound call to the inference service.
+- The inference service middleware reads it (or generates one) and echoes it in the response header.
 - Error responses include `request_id`, so a user can report "it failed, id abc123" and we can find both sides' logs.
 
 ---
@@ -56,10 +56,10 @@ Every API error, in both services, has this shape:
 | `code` | HTTP | Retryable? | Meaning |
 |--------|------|------------|---------|
 | `VALIDATION_ERROR` | 400/422 | no | Bad input. The message says which field and why |
-| `UNAUTHORIZED` | 401 | no | Missing or invalid API key (Space) |
+| `UNAUTHORIZED` | 401 | no | Missing or invalid API key (inference service) |
 | `RATE_LIMITED` | 429 | after `retry_after` | Our own per-IP or daily cap |
-| `COLD_START` | 503 | **yes** | The Space is waking up (timeout, 502/503, or a non-JSON body) |
-| `UPSTREAM_ERROR` | 502 | yes (limited) | A dependency (DB, LLM, Space) returned 5xx |
+| `COLD_START` | 503 | **yes** | The inference container is cold-starting (timeout, 502/503, or a non-JSON body) |
+| `UPSTREAM_ERROR` | 502 | yes (limited) | A dependency (DB, LLM, inference) returned 5xx |
 | `UPSTREAM_TIMEOUT` | 504 | yes (limited) | A dependency exceeded its timeout |
 | `QUOTA_EXHAUSTED` | 429 | no (until tomorrow) | The global daily LLM cap was reached |
 | `INTERNAL_ERROR` | 500 | no | A bug on our side, logged at `error` with a stack |
@@ -78,7 +78,7 @@ Users never see stack traces. Logs always have them.
 
 | Call | Per-attempt timeout | Attempts | Base / cap | Total budget |
 |------|---------------------|----------|------------|--------------|
-| Space `/embed`, `/predict` | 8 s | 4 | 1 s / 8 s | 45 s |
+| Inference `/embed`, `/predict` | 8 s | 4 | 1 s / 8 s | 45 s |
 | LLM | 30 s | 3 | 1 s / 8 s | 60 s |
 | Supabase | 5 s | 2 | 0.3 s / 1 s | 8 s |
 
@@ -86,7 +86,7 @@ Users never see stack traces. Logs always have them.
 
 ## 5. Health contract
 
-`GET /health` (Space) and `GET /api/health` (web) return:
+`GET /health` (inference) and `GET /api/health` (web) return:
 
 ```json
 {

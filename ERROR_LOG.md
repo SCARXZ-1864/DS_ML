@@ -17,6 +17,15 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 
 ---
 
+### 2026-10-12 — HF Docker Spaces are no longer free (architecture change)
+- **Milestone:** M0 (walking-skeleton deploy)
+- **Error:** the user reported Docker SDK marked as paid at huggingface.co/new-space. HF's message reads: "Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription."
+- **Root cause:** an external policy change. HF moved Gradio/Docker Spaces on CPU basic behind PRO for free accounts. The plan's free-tier table (§6) predated it. The only free compute left on HF is ZeroGPU Gradio Spaces, for accounts more than 30 days old.
+- **Fix:** with the user's decision, the inference host moves to **Modal** (Starter, $30/month free credits). The FastAPI code is unchanged. Added `inference/modal_app.py` (image built via `uv_sync` from `uv.lock`). Updated PLAN (§1, §2, §6, §7 #7), RISKS (R11, R14, new R31), ENGINEERING, READMEs and `.env.example`. Removed the unused `deploy_space.py`.
+- **Files changed:** `inference/modal_app.py`, `inference/pyproject.toml`, `inference/uv.lock` (`deploy` group: modal), `inference/README.md`, `PLAN.md`, `RISKS.md`, `docs/ENGINEERING.md`, `README.md`, `.env.example`, `web/src/app/api/health/route.ts` (comments)
+- **Verified by:** `uv run ruff check .`, `pytest` → 10 passed; `import modal_app` → App `review-intel-inference`. The live deploy is pending the user's Modal sign-in.
+- **Attempts:** 1
+
 ### 2026-10-12 — CI secret-scan job failed on the first push
 - **Milestone:** M0
 - **Error:** `gitleaks/gitleaks-action@v2` → `ERROR: Unexpected exit code [1]` (CI run 38174301119). The other 4 jobs passed.

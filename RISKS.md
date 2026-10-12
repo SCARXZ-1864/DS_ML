@@ -23,7 +23,7 @@ Sorted by likelihood × impact. These are the ones to watch most.
 |----|------|---|---|------|
 | R01 | Dataset too large for laptop RAM | H | M | M1 |
 | R02 | Class imbalance hides poor minority-class performance | H | H | M2–M4 |
-| R14 | HF Space cold starts break live features | H | M | M8–M10 |
+| R14 | Inference cold starts (Modal scale-to-zero) break live features | H | M | M8–M10 |
 | R17 | RAG hallucination / fabricated citations | H | H | M10 |
 | R18 | Prompt injection via review text | M | H | M10 |
 | R22 | Secrets committed to git or exposed to the browser | M | H | M0 |
@@ -36,7 +36,8 @@ Sorted by likelihood × impact. These are the ones to watch most.
 | R10 | ABSA misses aspects or misclassifies on our domain | M | M | M6 |
 | R15 | Vercel function timeouts | M | M | M9–M10 |
 | R27 | OneDrive / Windows path and lock issues | H | L | M0 |
-| R11 | Model and Docker image too large for the Space | M | M | M8 |
+| R11 | Model and image too large for the inference container | M | M | M8 |
+| R31 | Free hosting tier withdrawn (already happened with HF Spaces) | M | H | M0 |
 
 All risks are detailed below, grouped by area.
 
@@ -129,7 +130,7 @@ All risks are detailed below, grouped by area.
 - **Mitigate:** seed the synonyms from BERTopic keywords and n-grams, classify at sentence level (not whole review), keep a confidence threshold, and send low-confidence predictions to "neutral/uncertain".
 - **Fallback:** the LLM-JSON extractor on the validation set for comparison. If it's much better, use it for a capped subset (e.g. the serving corpus only), but only with your OK given the rate limits.
 
-### R11 — Model and image size vs. Space hosting
+### R11 — Model and image size vs. inference hosting
 - **L/I:** M / M
 - **What:** a CUDA torch wheel (~2+ GB) gets pulled in by accident and Docker builds time out or bloat. Loading three models raises RAM and cold-start time.
 - **Detect:** M8 records image size and model load time. CI fails if `torch` resolves to a CUDA build in `inference/`.
@@ -163,12 +164,12 @@ All risks are detailed below, grouped by area.
 
 ## D. Serving and runtime
 
-### R14 — HF Space cold starts
+### R14 — Inference cold starts
 - **L/I:** H / M
-- **What:** the Space sleeps after about 48 h. The first request then waits 30 s to minutes, or gets a 503 or an HTML "building/sleeping" page instead of JSON.
+- **What:** Modal scales to zero after `scaledown_window` (5 min) idle. The next request waits for a container boot plus model load (~10–30 s, more once models are large). Requests queue during the boot, so the symptom is a timeout rather than a 503.
 - **Detect:** the inference client classifies failures (timeout, 502/503, non-JSON body) as `COLD_START`, as distinct from `BAD_REQUEST` and `SERVER_ERROR`. `/api/health` surfaces the "waking" state.
 - **Mitigate:**
-  - The dashboard is independent of the Space (design).
+  - The dashboard is independent of the inference service (design).
   - Exponential backoff with jitter: about 4 attempts over roughly 45 s.
   - The UI says "Model is waking up, retrying…".
   - Chat falls back to keyword search.
@@ -231,18 +232,18 @@ All risks are detailed below, grouped by area.
 - **L/I:** L / M (low because of the BFF design)
 - **What:** the browser blocks cross-origin calls.
 - **Detect:** browser console errors, and the smoke test runs from a real origin.
-- **Mitigate:** the browser only calls same-origin `/api/*`. Server-to-server calls (Vercel→Space, Vercel→Supabase) aren't subject to CORS. The Space sets CORS to deny browser origins entirely, since browsers should never call it.
-- **Fallback:** an explicit allowlist of the Vercel domain on the Space, never `*`.
+- **Mitigate:** the browser only calls same-origin `/api/*`. Server-to-server calls (Vercel→Modal, Vercel→Supabase) aren't subject to CORS. The inference service sets CORS to deny browser origins entirely, since browsers should never call it.
+- **Fallback:** an explicit allowlist of the Vercel domain on the inference service, never `*`.
 
 ### R20 — Public inference endpoint abuse
 - **L/I:** M / M
-- **What:** the Space URL is public. Anyone can hit `/predict` and tie up its 2 vCPUs.
-- **Detect:** Space logs show requests without a valid key.
-- **Mitigate:** an `x-api-key` header is required on everything except `/health` (the key lives only in Vercel and Space secrets). Max input length and max batch size are enforced by Pydantic.
+- **What:** the Modal endpoint URL is public. Anyone can hit `/predict` and tie up its 2 vCPUs.
+- **Detect:** Modal logs show requests without a valid key.
+- **Mitigate:** an `x-api-key` header is required on everything except `/health` (the key lives only in the Vercel and Modal secret stores). Max input length and max batch size are enforced by Pydantic.
 
 ### R21 — Embedding mismatch between batch and query time
 - **L/I:** M / H (a silent failure: search "works" but returns poor results)
-- **What:** reviews are embedded offline with one model version or normalization setting, and queries are embedded in the Space with a different one. bge models also expect a query instruction prefix.
+- **What:** reviews are embedded offline with one model version or normalization setting, and queries are embedded in the inference service with a different one. bge models also expect a query instruction prefix.
 - **Detect:** a pytest in `inference/` embeds a fixed sentence and compares it to a stored reference vector from the pipeline (cosine > 0.999). The model id and revision are stored in a DB metadata table and checked by `/api/health`.
 - **Mitigate:** pin the **same model revision (commit hash)** in both places, use one shared `normalize_embeddings=True` setting, and document the query prefix in one place.
 
@@ -293,7 +294,7 @@ All risks are detailed below, grouped by area.
 
 ### R26 — Hard-to-diagnose failures across services
 - **L/I:** M / M
-- **What:** "chat doesn't work" could be Vercel, the Space, Supabase or the LLM.
+- **What:** "chat doesn't work" could be Vercel, Modal, Supabase or the LLM.
 - **Detect and mitigate:**
   - A request_id is generated in Next.js, sent as `x-request-id` and logged on both sides.
   - Structured JSON logs carry a stage name and duration.
@@ -306,7 +307,7 @@ All risks are detailed below, grouped by area.
 - **What:**
   - OneDrive locks or syncs `node_modules`, `.venv`, `.git` and data.
   - Long-path limits on Windows.
-  - CRLF line endings break the Dockerfile and shell scripts in the Linux Space.
+  - CRLF line endings break the Dockerfile and shell scripts in the Linux container.
   - The Windows Store `python` alias shadows a real install (already observed).
 - **Detect:** install and build errors (EPERM, EBUSY) and `file` checks.
 - **Mitigate:**
@@ -319,6 +320,15 @@ All risks are detailed below, grouped by area.
 - **L/I:** L / M
 - **What:** the Hobby plan forbids commercial use.
 - **Mitigate:** this is a portfolio demo with no ads or payments, which the README states. Revisit if the project is ever used for a real business.
+
+---
+
+### R31 — Free hosting tiers get withdrawn mid-project (it already happened)
+- **L/I:** M / H
+- **What:** a provider changes its free tier. **This already materialized on 2026-10-12:** HF made Docker/Gradio Spaces PRO-only for new free accounts, and we moved inference to Modal. Modal's $30/month credit could change in the same way, or usage could exceed it.
+- **Detect:** a spend alert in the Modal dashboard (e.g. at $10). `/api/health` reports the inference service as `down` if the account is suspended. A monthly check of the pricing pages.
+- **Mitigate:** the inference service is a plain FastAPI app with a portable **Dockerfile** (still built and smoke-tested in CI), so moving hosts means a new deploy target, not a rewrite. `scaledown_window` and `min_containers=0` keep spend near zero.
+- **Fallback:** a Supabase Edge Function's built-in `gte-small` for query embeddings, plus the LLM for "Try it" (the "no inference server" option from the 2026-10-12 decision).
 
 ---
 

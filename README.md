@@ -21,7 +21,7 @@ A web app that analyzes ~150k Amazon product reviews and shows a business:
 ```
 Offline (laptop + Colab) ──► Supabase Postgres + pgvector ◄── Next.js API routes (Vercel) ◄── Browser
         │                                                        │
-        └── fine-tuned models ──► HF Hub ──► FastAPI on HF Space ◄┘ (embeddings + live predictions)
+        └── fine-tuned models ──► HF Hub ──► FastAPI on Modal ◄┘ (embeddings + live predictions)
 ```
 
 The dashboard reads only precomputed data, so it never waits on a model. Full diagram and reasoning: [PLAN.md §1](PLAN.md#1-architecture).
@@ -31,7 +31,7 @@ The dashboard reads only precomputed data, so it never waits on a model. Full di
 | Path | What | Tooling |
 |------|------|---------|
 | `pipeline/` | Data cleaning, EDA, training, topic modeling, ABSA, DB loading | Python 3.12, uv |
-| `inference/` | FastAPI inference service, deployed as a Hugging Face Docker Space | Python 3.12, uv |
+| `inference/` | FastAPI inference service, deployed to Modal (serverless, scales to zero) | Python 3.12, uv |
 | `web/` | Next.js dashboard + API routes (BFF), deployed on Vercel | Node 22+, pnpm |
 | `db/` | SQL migrations (M7) | Postgres + pgvector |
 | `data/` | Local datasets (**gitignored**) | — |

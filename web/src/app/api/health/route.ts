@@ -19,10 +19,10 @@ async function checkInference(requestId: string): Promise<CheckState> {
       cache: "no-store",
     });
     if (res.ok) return "ok";
-    // A sleeping HF Space answers 502/503/504 while it boots.
+    // A cold or restarting inference host may answer 502/503/504 while it boots.
     return [502, 503, 504].includes(res.status) ? "waking" : "down";
   } catch (err) {
-    // A timeout most likely means the Space is cold-starting, not dead.
+    // A timeout most likely means the inference container is cold-starting, not dead.
     return err instanceof DOMException && err.name === "TimeoutError" ? "waking" : "down";
   }
 }

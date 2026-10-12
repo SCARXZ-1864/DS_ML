@@ -7,10 +7,10 @@
 
 ## 0. TL;DR
 
-- **Precompute everything you can; keep live paths small.** The dashboard (sentiment trends, topics, aspects) reads **only precomputed tables in Postgres**. It never waits on a model, so a sleeping Hugging Face Space can't break it.
-- **The HF Space handles only what has to be live:** embedding the user's chat question, plus a "Try it" page that scores a pasted review.
-- **The browser talks to exactly one backend: Next.js API routes on Vercel.** Those routes hold every secret and call Supabase, the Space and the LLM. This one decision removes most CORS and secret-leak problems.
-- **Chat degrades gracefully.** If the Space is cold, retrieval falls back to Postgres keyword search, and the UI says so, so chat doesn't just fail.
+- **Precompute everything you can; keep live paths small.** The dashboard (sentiment trends, topics, aspects) reads **only precomputed tables in Postgres**. It never waits on a model, so a cold inference container can't break it.
+- **The inference service (FastAPI on Modal) handles only what has to be live:** embedding the user's chat question, plus a "Try it" page that scores a pasted review.
+- **The browser talks to exactly one backend: Next.js API routes on Vercel.** Those routes hold every secret and call Supabase, the inference service and the LLM. This one decision removes most CORS and secret-leak problems.
+- **Chat degrades gracefully.** If the inference service is cold, retrieval falls back to Postgres keyword search, and the UI says so, so chat doesn't just fail.
 
 Your proposed split is right in shape. Section 1.2 lists what I changed and why.
 
@@ -37,10 +37,10 @@ flowchart LR
   SENT -- "push fine-tuned model" --> HUB[("Hugging Face Hub<br/>model repos")]
   LOAD --> DB[("Supabase Postgres<br/>pgvector + full-text search<br/>precomputed aggregates")]
 
-  subgraph HF["Hugging Face Space (Docker, CPU)"]
-    SPACE["FastAPI inference<br/>/health /embed<br/>/predict/sentiment /predict/absa"]
+  subgraph MODAL["Modal (serverless container, CPU, scales to zero)"]
+    INF["FastAPI inference<br/>/health /embed<br/>/predict/sentiment /predict/absa"]
   end
-  HUB -- "baked into image at build" --> SPACE
+  HUB -- "baked into image at build" --> INF
 
   subgraph VC["Vercel"]
     UI["Next.js pages<br/>(dashboard, topics, aspects, chat, try-it)"]
@@ -51,15 +51,15 @@ flowchart LR
   USER(("Browser")) --> UI
   UI --> API
   API --> DB
-  API -- "x-api-key, retries" --> SPACE
+  API -- "x-api-key, retries" --> INF
   API -- "streamed answer" --> LLM["LLM API<br/>(provider TBD, see §7)"]
   CRON --> DB
-  CRON --> SPACE
+  %% no keep-alive for Modal: it scales to zero by design; pages send a warm-up ping instead
 
   subgraph CI["GitHub Actions"]
     TESTS["pytest + vitest + typecheck<br/>+ build + secret scan"]
   end
-  TESTS -- "deploy only if green" --> SPACE
+  TESTS -- "deploy only if green" --> INF
   TESTS -- "deploy only if green" --> VC
 ```
 
@@ -67,25 +67,25 @@ flowchart LR
 
 | # | Change | Why |
 |---|--------|-----|
-| 1 | **The dashboard never calls the Space.** Every chart reads precomputed tables. | Free Spaces sleep, and a cold start takes 30 s to several minutes. The 90% of the app that is analytics shouldn't depend on that. Reading precomputed data is also how real BI tools work: you don't re-run a model on every page view. |
-| 2 | **The Space's job is narrowed to `/embed`, `/predict/sentiment`, `/predict/absa` and `/health`.** | Less to load means faster cold starts and lower RAM. The models are **baked into the Docker image at build time**, so a cold start loads from local disk instead of re-downloading about 1 GB from the Hub. |
-| 3 | **Next.js API routes act as a Backend-for-Frontend (BFF).** The browser never calls Supabase, the Space or the LLM directly. | Secrets stay on the server. CORS mostly goes away because the browser only calls its own origin. Validation, rate limiting and logging all live in one place. |
-| 4 | **One embedding model (`BAAI/bge-small-en-v1.5`, 384-dim) is used for both BERTopic and RAG.** | We compute embeddings once and use them twice. A small 384-dim model keeps the database under its free 500 MB limit (see §6) and runs fast on CPU in the Space. |
-| 5 | **Retrieval is hybrid (pgvector + Postgres full-text search, merged with Reciprocal Rank Fusion), and keyword-only search is the fallback.** | Hybrid search usually beats either method alone on product reviews, which are full of exact terms like model names. It also gives chat a path that works when the Space is asleep. |
+| 1 | **The dashboard never calls the inference service.** Every chart reads precomputed tables. | A scale-to-zero container needs ~10–30 s to cold-start. The 90% of the app that is analytics shouldn't depend on that. Reading precomputed data is also how real BI tools work: you don't re-run a model on every page view. |
+| 2 | **The inference service's job is narrowed to `/embed`, `/predict/sentiment`, `/predict/absa` and `/health`.** | Less to load means faster cold starts and lower RAM. The models are **baked into the Docker image at build time**, so a cold start loads from local disk instead of re-downloading about 1 GB from the Hub. |
+| 3 | **Next.js API routes act as a Backend-for-Frontend (BFF).** The browser never calls Supabase, the inference service or the LLM directly. | Secrets stay on the server. CORS mostly goes away because the browser only calls its own origin. Validation, rate limiting and logging all live in one place. |
+| 4 | **One embedding model (`BAAI/bge-small-en-v1.5`, 384-dim) is used for both BERTopic and RAG.** | We compute embeddings once and use them twice. A small 384-dim model keeps the database under its free 500 MB limit (see §6) and runs fast on CPU in the inference service. |
+| 5 | **Retrieval is hybrid (pgvector + Postgres full-text search, merged with Reciprocal Rank Fusion), and keyword-only search is the fallback.** | Hybrid search usually beats either method alone on product reviews, which are full of exact terms like model names. It also gives chat a path that works when the inference service is asleep. |
 | 6 | **Chat answers are grounded in reviews *and* a small precomputed stats summary.** | RAG over 8 retrieved reviews can't answer "what % of reviews were negative in 2023?". Adding a compact stats block, built from our aggregate tables, lets the LLM answer quantitative questions truthfully. |
 | 7 | **Citations are validated on the server.** The LLM may cite only the IDs of reviews we actually retrieved, and anything else is stripped and logged. | This is a cheap, deterministic guard against fabricated citations. |
 | 8 | **ABSA = curated aspect lexicon + pretrained DeBERTa ABSA model.** The LLM-JSON approach is used only as an optional comparison on a small eval set. | `yangheng/deberta-v3-base-absa-v1.1` classifies a *(sentence, aspect)* pair but doesn't discover aspects. So we need an aspect list first, seeded from BERTopic keywords and curated by hand. Running an LLM over 100k+ reviews would also cost money and run into rate limits. |
 | 9 | **The database is split into an "analysis set" and a "serving corpus".** We analyze about 150k reviews offline. Postgres stores all the aggregates, but only a stratified **~50k-review corpus** with text and embeddings. | Storage math (§6) shows that 150k reviews with text, a vector index and a full-text index would exceed the 500 MB free tier. |
-| 10 | **A daily Vercel Cron keep-alive pings Supabase and the Space.** | Free Supabase projects pause after about 7 days of inactivity, and free Spaces sleep after about 48 h. One daily ping prevents both. |
+| 10 | **A daily Vercel Cron keep-alive pings Supabase. The chat and Try-it pages send a warm-up ping to the inference service when they open.** | Free Supabase projects pause after about 7 days of inactivity. Modal bills only while containers run, so a daily ping would only buy one warm minute; warming on page open hides most of the cold start instead. |
 | 11 | **Deploys run from GitHub Actions *after* tests pass.** We don't use Vercel/HF auto-deploy-on-push. | This implements your rule that "tests run before each deploy", so a red build can't ship. |
-| 12 | **A request ID is propagated from Next.js to the Space and appears in every log line on both sides.** | When something fails, you can follow one user request across two services. That's the core of the Phase 3 self-diagnosis goal. |
+| 12 | **A request ID is propagated from Next.js to the inference service and appears in every log line on both sides.** | When something fails, you can follow one user request across two services. That's the core of the Phase 3 self-diagnosis goal. |
 
 ### 1.3 Why each component (the short "why")
 
 - **Python offline pipeline, not in production:** training and topic modeling are batch jobs. Running them once and storing the results is cheaper, faster and reproducible.
 - **Colab/Kaggle for GPU:** fine-tuning DistilBERT on about 100k reviews takes hours on CPU and under an hour on a T4. Kaggle is the backup because its GPU quota is weekly and predictable.
-- **HF Hub for models:** it's free, versioned, git-based storage that the Space can pull from at build time, and it doubles as a portfolio artifact with a model card.
-- **FastAPI on a Docker Space:** a Docker Space gives us full control over the runtime (pinned torch CPU wheels, a non-root user, a baked-in model cache). FastAPI gives us Pydantic validation and OpenAPI docs for free.
+- **HF Hub for models:** it's free, versioned, git-based storage that the inference service can pull from at build time, and it doubles as a portfolio artifact with a model card.
+- **FastAPI on Modal (amended 2026-10-12):** HF made Docker/Gradio Spaces PRO-only for new free accounts, so the same container code now runs on Modal (serverless, $30/month free credits, scales to zero). A container gives us full control over the runtime (pinned torch CPU wheels, a non-root user, a baked-in model cache). FastAPI gives us Pydantic validation and OpenAPI docs for free.
 - **Supabase Postgres + pgvector:** one database handles relational analytics, vector search *and* full-text search. One service means one set of credentials and one thing that can be down.
 - **Next.js on Vercel:** this is the deployment target you chose. The App Router gives us server components for fast dashboard pages and route handlers for the BFF.
 
@@ -95,16 +95,16 @@ flowchart LR
 sequenceDiagram
   participant B as Browser
   participant N as Next.js /api/chat
-  participant S as HF Space /embed
+  participant S as Modal /embed
   participant P as Supabase (RPC)
   participant L as LLM API
   B->>N: POST {question}
   N->>N: zod validate, rate-limit check, assign request_id
   N->>S: embed(question) [timeout 8s, retry w/ backoff x3]
-  alt Space awake
+  alt Service warm
     S-->>N: 384-dim vector
     N->>P: hybrid_search(vector, text, k=8)
-  else Space cold / down
+  else Service cold / down
     N-->>B: status event "Semantic search waking up, using keyword search"
     N->>P: keyword_search(text, k=8)
   end
@@ -130,7 +130,7 @@ review-intel/
 ├── .env.example               # every env var, no values
 ├── .github/workflows/
 │   ├── ci.yml                 # lint, typecheck, pytest, vitest, next build, gitleaks
-│   ├── deploy-space.yml       # on main + green CI → push inference/ to HF Space
+│   ├── deploy-inference.yml   # on main + green CI → modal deploy inference/modal_app.py
 │   └── deploy-web.yml         # on main + green CI → vercel deploy --prod
 │
 ├── data/                      # GITIGNORED
@@ -161,9 +161,9 @@ review-intel/
 │   ├── reports/               # committed: metrics/*.json, figures/*.png, data_card.md
 │   └── tests/                 # pytest: cleaning, labels, schema, aggregates, loader
 │
-├── inference/                 # HF Space (Docker) — deployed as its own Space repo
+├── inference/                 # FastAPI service → deployed to Modal (modal_app.py); Dockerfile kept for portability
 │   ├── Dockerfile             # python slim, CPU torch, non-root, models baked in
-│   ├── README.md              # HF Space front-matter (sdk: docker, app_port)
+│   ├── modal_app.py           # Modal image (uv_sync from uv.lock) + asgi_app entrypoint
 │   ├── pyproject.toml / uv.lock
 │   ├── scripts/download_models.py   # run at docker build time
 │   ├── app/
@@ -187,16 +187,16 @@ review-intel/
 │   │   ├── try/page.tsx       # paste a review → live sentiment + ABSA
 │   │   ├── about/page.tsx     # model card, metrics, limitations
 │   │   └── api/
-│   │       ├── health/route.ts          # aggregated health (self, db, space, llm)
+│   │       ├── health/route.ts          # aggregated health (self, db, inference, llm)
 │   │       ├── analytics/[...]/route.ts # read-only aggregates
 │   │       ├── reviews/route.ts         # paginated drill-down
 │   │       ├── chat/route.ts            # RAG (streaming)
-│   │       ├── predict/route.ts         # proxies Space for "Try it"
+│   │       ├── predict/route.ts         # proxies the inference service for "Try it"
 │   │       └── cron/keepalive/route.ts  # CRON_SECRET-protected
 │   ├── src/lib/
 │   │   ├── env.ts             # zod-validated env, fails fast at boot
 │   │   ├── db.ts              # server-only Supabase client
-│   │   ├── inference.ts       # Space client: timeout, retry, cold-start detection
+│   │   ├── inference.ts       # inference client: timeout, retry, cold-start detection
 │   │   ├── llm.ts             # provider-agnostic LLM wrapper
 │   │   ├── rag.ts             # retrieval, prompt building, citation validation
 │   │   ├── retry.ts           # exponential backoff with jitter
@@ -230,7 +230,7 @@ review-intel/
 | Data | pandas, pyarrow | 2.2+, 17+ | Parquet everywhere; Polars is optional if memory gets tight |
 | Validation | pandera | 0.20+ | Schema checks on dataframes, tested in CI |
 | Classic ML | scikit-learn | 1.5+ | TF-IDF + LogisticRegression(class_weight="balanced") |
-| Deep learning | torch | 2.4+ (CPU wheel in Space) | The CUDA build is only needed on Colab |
+| Deep learning | torch | 2.4+ (CPU wheel in Modal image) | The CUDA build is only needed on Colab |
 | Transformers | transformers, datasets, accelerate, evaluate | latest stable 4.x/5.x pinned in M0 | DistilBERT fine-tune, ABSA inference |
 | Embeddings | sentence-transformers | latest stable | Model: `BAAI/bge-small-en-v1.5` (384-d, ~130 MB) |
 | Topics | bertopic, umap-learn, hdbscan | 0.16+ | Uses precomputed embeddings |
@@ -319,17 +319,17 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 
 ### M10 — RAG chat and "Try it"
 - `/api/chat`: validate → rate limit → embed with retry/backoff → hybrid search, with keyword fallback → stats block → LLM streaming → citation validation. Global daily cap on LLM calls.
-- `/try`: paste a review → `/api/predict` → Space, with clear "waking up, retrying…" states.
+- `/try`: paste a review → `/api/predict` → inference service, with clear "waking up, retrying…" states.
 - **RAG eval:** 20 hand-written questions, including 5 that the reviews *can't* answer. We check citation validity (100% required), answer faithfulness (manual 1–3 score), and that the model **declines** the unanswerable ones.
-- **DoD:** the eval results are in `reports/rag_eval.md`. Route tests cover the fallback paths (Space down, LLM 429, invalid citations, oversized input).
+- **DoD:** the eval results are in `reports/rag_eval.md`. Route tests cover the fallback paths (inference down, LLM 429, invalid citations, oversized input).
 
 ### M11 — Hardening and docs
 - Load-test sanity (a small burst against local), review of error messages, accessibility pass, README results table and limitations, screenshot placeholders filled.
 - **DoD:** a full CI run is green. README sections are complete. ERROR_LOG is up to date.
 
 ### M12 — Deploy (Phase 5)
-- `deploy-space.yml` and `deploy-web.yml` are gated on CI. Env vars are set in HF Space secrets and Vercel. The cron is enabled.
-- **DoD:** both live `/health` endpoints return OK. `scripts/smoke_test.sh <web-url> <space-url>` passes (health, analytics, predict, chat with a citation, invalid-input rejection). The deployment checklist is in the README.
+- `deploy-inference.yml` and `deploy-web.yml` are gated on CI. Secrets are set in the Modal secret store and Vercel. The cron is enabled.
+- **DoD:** both live `/health` endpoints return OK. `scripts/smoke_test.sh <web-url> <inference-url>` passes (health, analytics, predict, chat with a citation, invalid-input rejection). The deployment checklist is in the README.
 
 ---
 
@@ -349,8 +349,8 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 | 10. Select serving corpus | laptop | 150k → ~50k stratified by month × label × topic (+ every topic's representative reviews) | Chat citations, drill-down reviews |
 | 11. Load | laptop → Supabase | parquet → Postgres tables (vectors as `halfvec`) | Everything in the dashboard |
 | 12. Serve analytics | Vercel → Supabase | page request → SQL on aggregates | Charts in < 1 s, no model needed |
-| 13. Serve chat | Vercel → Space → Supabase → LLM | question → embedding → top-8 reviews + stats → cited answer | Chat answer with clickable review cards |
-| 14. Serve "Try it" | Vercel → Space | pasted text → sentiment + aspect polarities | Live prediction |
+| 13. Serve chat | Vercel → Modal → Supabase → LLM | question → embedding → top-8 reviews + stats → cited answer | Chat answer with clickable review cards |
+| 14. Serve "Try it" | Vercel → Modal | pasted text → sentiment + aspect polarities | Live prediction |
 
 **One important honesty point for the README:** sentiment labels come from star ratings, so "model sentiment over time" on *already-rated* reviews mostly agrees with the stars. We show both, and the gap between them is itself interesting (e.g. 4-star reviews with negative text). The classifier earns its keep on **text without stars**: the Try-it page and any future unrated data.
 
@@ -363,7 +363,7 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 | Service | Relevant free-tier limits (approx.) | Our expected usage | How we stay within |
 |---------|-------------------------------------|--------------------|--------------------|
 | **Supabase (Free)** | 500 MB database; ~5 GB egress/month; 2 active projects; **pauses after ~7 days without activity** | Target **≤ 350 MB** (see math below) | Serving corpus capped at ~50k; `halfvec(384)`; text truncated to 2,000 chars; daily keep-alive cron; a DB-size check in the loader that fails loudly above 400 MB |
-| **Hugging Face Spaces (CPU basic)** | 2 vCPU, 16 GB RAM, ~50 GB ephemeral disk; **sleeps after ~48 h without traffic**; cold start 30 s–few min | ~1.5 GB RAM (DistilBERT ~260 MB + DeBERTa ~700 MB + bge-small ~130 MB + overhead) | Models baked into the image; lazy-loading ABSA (only needed by Try-it); daily keep-alive; retry + "waking up" UI; dashboard independent of the Space |
+| **Modal (Starter, amended 2026-10-12)** | **$30/month free compute credits**; CPU ≈ $0.0000131/core-s, memory ≈ $0.00000222/GiB-s; scales to zero; cold start ~10–30 s (+ model load) | 1 core + 2–3 GiB, only while serving. ~5 container-hours/month at portfolio traffic ≈ **under $1 of the $30** | `scaledown_window=300`, `min_containers=0`; models baked into the image; ABSA lazy-loaded; warm-up ping on page open; retry + "waking up" UI; dashboard independent of the inference service. A spend alert in the Modal dashboard |
 | **Hugging Face Hub** | Free public model and dataset repos | 1 model repo (~260 MB) | Public repo with a model card. We **don't re-upload the Amazon dataset** (licence), only the model |
 | **Vercel (Hobby)** | **Non-commercial use only**; ~100 GB transfer/month; capped function invocations and CPU-hours; 250 MB function bundle; function timeout limits (verify current max); cron jobs at **daily frequency at most** | Low (portfolio traffic) | No ML libraries in functions (bundle stays small); routes aim for < 10 s, chat streams; server-component data cached with revalidation; exactly 1 daily cron |
 | **Google Colab (Free)** | T4 GPU when available; sessions up to ~12 h, idle disconnects ~90 min; **usage not guaranteed** | DistilBERT: ~45–90 min. Embeddings: ~10 min. ABSA: ~20–40 min | Checkpoint to Google Drive every epoch; resumable scripts; **Kaggle (≈30 GPU-h/week) as fallback** |
@@ -394,9 +394,10 @@ The plan was approved without overrides, so the recommended defaults apply. Any 
 | 1 | Dataset/category | **Amazon Reviews 2023, `Cell_Phones_and_Accessories`** | M1 |
 | 2 | LLM provider | **Google Gemini Flash free tier** behind the Vercel AI SDK. Claude Haiku 4.5 is an optional paid A/B later, and only if you approve it | M10 |
 | 3 | Repo location | **Move to `C:\dev\review-intel`** (out of OneDrive) as the first step of M0 | M0 |
-| 4 | Early walking-skeleton deploy | **Yes**: hello-world Space and Vercel page in M0 | M0 |
+| 4 | Early walking-skeleton deploy | **Yes**: hello-world inference service (Modal) and Vercel page in M0 | M0 |
 | 5 | GitHub repo visibility | **Public** | M0 |
 | 6 | Sample sizes | **~150k analysis set / ~50k serving corpus**, configurable in `config.py`. Development iterates on a 20k subset first | M1 |
+| 7 | Inference host *(amended 2026-10-12)* | **Modal** (Starter, $30/month free credits) instead of an HF Docker Space. HF now requires PRO for Gradio/Docker Spaces on new free accounts. The HF **Hub** is still used for model storage | M0 |
 
 ---
 
