@@ -27,7 +27,8 @@ Deploy:
 
 ```bash
 uv run --group deploy modal deploy modal_app.py
-# → https://<workspace>--review-intel-inference.modal.run/health
+# → https://<workspace>--review-intel-inference.<region>.modal.run/health
+# live: https://digbijaysahu10--review-intel-inference.us-east.modal.run/health
 ```
 
 `modal_app.py` builds the image with `uv_sync` from this folder's `uv.lock`, so production runs exactly the locked versions. The `Dockerfile` is kept as a portable fallback (RISKS R31) and is built and smoke-tested in CI.

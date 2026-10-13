@@ -17,6 +17,15 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 
 ---
 
+### 2026-10-12 — `modal setup` exited 1 after a successful login
+- **Milestone:** M0
+- **Error:** `'charmap' codec can't encode character '\u2192' in position 0: character maps to <undefined>`, printed *after* "Token written to C:\Users\HP/.modal.toml".
+- **Root cause:** on Windows, when stdout is redirected (not a console), Python falls back to the ANSI codepage (cp1252), which has no `→`. Modal's closing message contains one, so printing it raised. The login itself had already completed.
+- **Fix:** run Modal CLI commands with `PYTHONUTF8=1` (Python UTF-8 mode). No code change.
+- **Files changed:** none (documented in this log; will be set in deploy commands/CI)
+- **Verified by:** `PYTHONUTF8=1 uv run --group deploy modal secret list` → renders the box-drawing table without error. `~/.modal.toml` exists.
+- **Attempts:** 1
+
 ### 2026-10-12 — HF Docker Spaces are no longer free (architecture change)
 - **Milestone:** M0 (walking-skeleton deploy)
 - **Error:** the user reported Docker SDK marked as paid at huggingface.co/new-space. HF's message reads: "Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription."

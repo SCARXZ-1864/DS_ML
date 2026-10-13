@@ -167,6 +167,7 @@ All risks are detailed below, grouped by area.
 ### R14 — Inference cold starts
 - **L/I:** H / M
 - **What:** Modal scales to zero after `scaledown_window` (5 min) idle. The next request waits for a container boot plus model load (~10–30 s, more once models are large). Requests queue during the boot, so the symptom is a timeout rather than a 503.
+- **Measured (M0, 2026-10-14, no models loaded):** cold start 5.4 s, warm round trip 0.9 s from India to us-east. Re-measure in M8 once models load.
 - **Detect:** the inference client classifies failures (timeout, 502/503, non-JSON body) as `COLD_START`, as distinct from `BAD_REQUEST` and `SERVER_ERROR`. `/api/health` surfaces the "waking" state.
 - **Mitigate:**
   - The dashboard is independent of the inference service (design).
