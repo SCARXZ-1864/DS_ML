@@ -17,6 +17,15 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 
 ---
 
+### 2026-10-14 — `LOG_LEVEL` was silently reset to `info` in the inference service
+- **Milestone:** M0 (found in a full-project review)
+- **Error:** no exception. Starting the app with `log_level="debug"` left the `inference` logger at `INFO` (new test: `assert logging.getLogger("inference").level == logging.DEBUG` failed).
+- **Root cause:** `get_logger()` defaulted `level` to `"info"` and called `setLevel` on every call. `create_app()` set the configured level first, then `register_error_handlers()` called `get_logger()` with no argument and overwrote it. No test asserted the level.
+- **Fix:** `get_logger(level=None)` sets INFO only when it first creates the handler, and changes the level only when one is passed explicitly. Added a regression test.
+- **Files changed:** `inference/app/logging.py`, `inference/tests/test_logging.py`
+- **Verified by:** `uv run pytest` → 11 passed (the new test failed before the fix)
+- **Attempts:** 1
+
 ### 2026-10-12 — `modal setup` exited 1 after a successful login
 - **Milestone:** M0
 - **Error:** `'charmap' codec can't encode character '\u2192' in position 0: character maps to <undefined>`, printed *after* "Token written to C:\Users\HP/.modal.toml".
@@ -41,7 +50,7 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Root cause:** not a real leak: `gitleaks git` over the same 8 commits locally reports "no leaks found". Not the org-licence requirement either, since the repo owner is a User account. The failure is in the action wrapper. Its most likely cause is the documented push-event behaviour of scanning `before..after`, where `before` is `0000000` on a new branch's first push. That can't be confirmed without authenticated log access.
 - **Fix:** replaced the wrapper with the pinned gitleaks CLI (v8.30.1, the same as local), running the identical full-history command `gitleaks git --redact --verbose .`.
 - **Files changed:** `.github/workflows/ci.yml`
-- **Verified by:** the local full-history scan, and the CI run after this commit (see the commit message / Actions tab)
+- **Verified by:** the local full-history scan, and every CI run since: the secret-scan job is green on `f4125bc`, `925a3a4` and `dbb0f14` (checked 2026-10-14)
 - **Attempts:** 1
 
 ### 2026-10-11 — Health check didn't forward the request id to the Space

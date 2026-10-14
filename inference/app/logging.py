@@ -60,12 +60,15 @@ class EventLogger:
         self._log(logging.ERROR, event, exc_info=True, **fields)
 
 
-def get_logger(level: str = "info") -> EventLogger:
+def get_logger(level: str | None = None) -> EventLogger:
+    """Pass `level` once at startup; later callers omit it so they don't reset it."""
     logger = logging.getLogger("inference")
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(_JsonFormatter())
         logger.addHandler(handler)
         logger.propagate = False
-    logger.setLevel(level.upper())
+        logger.setLevel(logging.INFO)
+    if level is not None:
+        logger.setLevel(level.upper())
     return EventLogger(logger)
