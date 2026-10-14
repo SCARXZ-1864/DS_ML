@@ -1,4 +1,5 @@
-# Hugging Face Space (sdk: docker). HF runs containers as uid 1000 and routes to app_port 7860.
+# Portable image (RISKS R31): Modal builds from modal_app.py, but CI still builds and smoke-tests this.
+# Runs as non-root uid 1000 and serves on port 7860.
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \

@@ -1,7 +1,7 @@
 [project]
 name = "review-intel-inference"
 version = "0.1.0"
-description = "FastAPI inference service (HF Space) for the Customer Review Intelligence Tool"
+description = "FastAPI inference service (deployed to Modal) for the Customer Review Intelligence Tool"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",

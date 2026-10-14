@@ -1,5 +1,5 @@
 # Normalise line endings to LF in the repo. CRLF breaks shell scripts and
-# Dockerfiles in the Linux HF Space (RISKS R27).
+# Dockerfiles in Linux containers (Modal image, CI Docker build; RISKS R27).
 * text=auto eol=lf
 *.bat text eol=crlf
 *.ps1 text eol=crlf

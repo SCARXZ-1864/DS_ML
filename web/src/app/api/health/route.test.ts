@@ -27,8 +27,8 @@ describe("GET /api/health", () => {
     expect(typeof body.uptime_s).toBe("number");
   });
 
-  it("reports inference ok when the Space health check succeeds", async () => {
-    vi.stubEnv("INFERENCE_URL", "https://space.example");
+  it("reports inference ok when the inference health check succeeds", async () => {
+    vi.stubEnv("INFERENCE_URL", "https://inference.example");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(Response.json({ status: "ok" }, { status: 200 })),
@@ -38,26 +38,26 @@ describe("GET /api/health", () => {
     expect(body.status).toBe("ok");
   });
 
-  it("forwards x-request-id to the Space so logs correlate across services", async () => {
-    vi.stubEnv("INFERENCE_URL", "https://space.example/");
+  it("forwards x-request-id to the inference service so logs correlate across services", async () => {
+    vi.stubEnv("INFERENCE_URL", "https://inference.example/");
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ status: "ok" }));
     vi.stubGlobal("fetch", fetchMock);
     await GET(req({ "x-request-id": "corr-1" }));
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://space.example/health");
+    expect(url).toBe("https://inference.example/health");
     expect(new Headers(init.headers).get("x-request-id")).toBe("corr-1");
   });
 
-  it("reports inference waking when the Space returns 503 (cold start)", async () => {
-    vi.stubEnv("INFERENCE_URL", "https://space.example");
+  it("reports inference waking when the inference service returns 503 (cold start)", async () => {
+    vi.stubEnv("INFERENCE_URL", "https://inference.example");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Starting…", { status: 503 })));
     const body = await (await GET(req())).json();
     expect(body.checks.inference).toBe("waking");
     expect(body.status).toBe("degraded");
   });
 
-  it("reports inference waking when the Space health check times out", async () => {
-    vi.stubEnv("INFERENCE_URL", "https://space.example");
+  it("reports inference waking when the inference health check times out", async () => {
+    vi.stubEnv("INFERENCE_URL", "https://inference.example");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError")),
@@ -67,7 +67,7 @@ describe("GET /api/health", () => {
   });
 
   it("reports inference down on a non-cold-start failure", async () => {
-    vi.stubEnv("INFERENCE_URL", "https://space.example");
+    vi.stubEnv("INFERENCE_URL", "https://inference.example");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 500 })));
     const body = await (await GET(req())).json();
     expect(body.checks.inference).toBe("down");
