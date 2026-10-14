@@ -1,7 +1,7 @@
 # PLAN.md — Customer Review Intelligence Tool
 
 > Status: **APPROVED 2026-10-11** (Phase 1). Decisions resolved in §7.
-> Last updated: 2026-10-11
+> Last updated: 2026-10-14
 
 ---
 
@@ -77,7 +77,7 @@ flowchart LR
 | 8 | **ABSA = curated aspect lexicon + pretrained DeBERTa ABSA model.** The LLM-JSON approach is used only as an optional comparison on a small eval set. | `yangheng/deberta-v3-base-absa-v1.1` classifies a *(sentence, aspect)* pair but doesn't discover aspects. So we need an aspect list first, seeded from BERTopic keywords and curated by hand. Running an LLM over 100k+ reviews would also cost money and run into rate limits. |
 | 9 | **The database is split into an "analysis set" and a "serving corpus".** We analyze about 150k reviews offline. Postgres stores all the aggregates, but only a stratified **~50k-review corpus** with text and embeddings. | Storage math (§6) shows that 150k reviews with text, a vector index and a full-text index would exceed the 500 MB free tier. |
 | 10 | **A daily Vercel Cron keep-alive pings Supabase. The chat and Try-it pages send a warm-up ping to the inference service when they open.** | Free Supabase projects pause after about 7 days of inactivity. Modal bills only while containers run, so a daily ping would only buy one warm minute; warming on page open hides most of the cold start instead. |
-| 11 | **Deploys run from GitHub Actions *after* tests pass.** We don't use Vercel/HF auto-deploy-on-push. | This implements your rule that "tests run before each deploy", so a red build can't ship. |
+| 11 | **Deploys run from GitHub Actions *after* tests pass.** We don't use Vercel or Modal auto-deploy-on-push. | This implements your rule that "tests run before each deploy", so a red build can't ship. |
 | 12 | **A request ID is propagated from Next.js to the inference service and appears in every log line on both sides.** | When something fails, you can follow one user request across two services. That's the core of the Phase 3 self-diagnosis goal. |
 
 ### 1.3 Why each component (the short "why")
@@ -403,4 +403,4 @@ The plan was approved without overrides, so the recommended defaults apply. Any 
 
 ## 8. What happens next
 
-Phase 1 is approved → **Phase 2: RISKS.md**, then a stop for your review. No code, installs or accounts until then.
+Phases 1–3 are done and **M0 (Foundations)** is nearly finished. Progress is tracked in the README status line and in each milestone's commits. Next comes **M1: data acquisition, cleaning and labeling**.

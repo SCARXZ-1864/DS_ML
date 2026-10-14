@@ -1,6 +1,6 @@
 # RISKS.md — Customer Review Intelligence Tool
 
-> Status: **DRAFT, awaiting review** (Phase 2). Written 2026-10-11 against the approved PLAN.md.
+> Status: **Phase 2 complete** (2026-10-11); amended 2026-10-12 (Modal, R31). The review checklist at the end still has open questions that matter for M6 and M10.
 > This is a living document. When a risk materializes, its incident goes in ERROR_LOG.md and the entry here gets updated.
 
 ## How to read this
@@ -174,7 +174,7 @@ All risks are detailed below, grouped by area.
   - Exponential backoff with jitter: about 4 attempts over roughly 45 s.
   - The UI says "Model is waking up, retrying…".
   - Chat falls back to keyword search.
-  - A daily keep-alive ping, plus a page-load warm-up ping fired when the chat or Try-it page opens.
+  - No scheduled keep-alive for inference (PLAN §1.2 #10: a daily ping buys one warm minute). Instead, a page-load warm-up ping fires when the chat or Try-it page opens.
 - **Fallback:** if cold starts are still painful, document it, or consider a paid always-on tier (only with your approval).
 
 ### R15 — Vercel function timeouts
@@ -266,7 +266,7 @@ All risks are detailed below, grouped by area.
   - A logger redaction test.
 - **Mitigate:**
   - `.env*` gitignored except `.env.example`.
-  - Secrets live only in the Vercel, HF and GitHub secret stores.
+  - Secrets live only in the Vercel, Modal and GitHub secret stores.
   - Notebooks read tokens via `google.colab.userdata` or `getpass` and are committed with outputs cleared (`nbstripout`).
   - Supabase RLS on with no public policies, so even a leaked anon key reads nothing.
 - **Fallback (if a leak happens):** **rotate the key immediately** (deleting the commit is not enough, because git history and forks keep it) and log an incident in ERROR_LOG.md.

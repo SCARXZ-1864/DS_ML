@@ -12,7 +12,7 @@ A web app that analyzes ~150k Amazon product reviews and shows a business:
 | Doc | What's in it |
 |-----|--------------|
 | [PLAN.md](PLAN.md) | Architecture, stack, milestones, data flow, free-tier budget |
-| [RISKS.md](RISKS.md) | 30 risks with detection and mitigation |
+| [RISKS.md](RISKS.md) | 31 risks with detection and mitigation |
 | [docs/ENGINEERING.md](docs/ENGINEERING.md) | Logging, error, retry, health and testing contracts |
 | [ERROR_LOG.md](ERROR_LOG.md) | Every dev incident: root cause and fix |
 
