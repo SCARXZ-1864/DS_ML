@@ -124,3 +124,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `.github/workflows/ci.yml` (docker-build job)
 - **Verified by:** CI docker-build job (once the GitHub repo exists)
 - **Attempts:** 1
+
+### 2026-10-30 — pre-commit trailing-whitespace hook blocked by Windows
+- **Milestone:** Part 1 (frontend), committing the design spec
+- **Error:** `trim trailing whitespace....Failed — [WinError 4551] An Application Control policy has blocked this file`
+- **Root cause:** Windows Smart App Control blocks the unsigned launcher `trailing-whitespace-fixer.exe` that pre-commit generates in its cache (`~/.cache/pre-commit/.../Scripts/`). The hook's Python module itself runs fine (`python -m pre_commit_hooks.trailing_whitespace_fixer` → exit 0).
+- **Fix:** overrode the hook's `entry` to `python -m pre_commit_hooks.trailing_whitespace_fixer`. It's the same check, run through the hook environment's Python instead of the blocked launcher. The hook is not skipped or disabled.
+- **Files changed:** `.pre-commit-config.yaml`
+- **Verified by:** `uvx pre-commit run trailing-whitespace --files ...` → Passed
+- **Attempts:** 1

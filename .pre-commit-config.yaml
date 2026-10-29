@@ -10,6 +10,9 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # Windows Smart App Control blocks the generated trailing-whitespace-fixer.exe
+        # shim (WinError 4551); calling the module via the hook's own Python avoids it.
+        entry: python -m pre_commit_hooks.trailing_whitespace_fixer
       - id: detect-private-key
   - repo: local
     hooks:
