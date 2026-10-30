@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Tropical palette. Components use these tokens only, never raw hex values
+   (enforced by src/test/tokens.test.ts). */
+@theme {
+  --color-bg: #05252a;
+  --color-panel: #0a3238;
+  --color-panel-2: #041d21;
+  --color-line: #16505a;
+  --color-ink: #effcfa;
+  --color-muted: #8fbfbd;
+  --color-pos: #22e39b;
+  --color-neg: #ff5a36;
+  --color-accent: #ffcf33;
+  --color-info: #3ad0ff;
+
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-serif: var(--font-source-serif), Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Light variant for shared reports and printing: same roles, light values. */
+.theme-light {
+  --color-bg: #fffdf8;
+  --color-panel: #ffffff;
+  --color-panel-2: #f5f2ea;
+  --color-line: #e6e0d4;
+  --color-ink: #14161c;
+  --color-muted: #5f6370;
+  --color-pos: #00a862;
+  --color-neg: #d9381e;
+  --color-accent: #b98900;
+  --color-info: #0070f3;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -50% 0; }
+}
+
+/* Use with pathLength={1} on the <path> so the dash covers the whole line. */
+.animate-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.7s ease-out forwards; }
+.animate-grow { animation: grow 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.animate-fade-rise { animation: fade-rise 0.35s ease-out both; }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-panel) 0, var(--color-line) 40%, var(--color-panel) 80%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
