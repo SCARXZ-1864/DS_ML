@@ -4,7 +4,8 @@
 !.env.example
 
 # --- data & model artifacts (never commit; see RISKS R23) ---
-data/
+# Leading slash: only the top-level datasets folder, not code folders such as web/src/lib/data.
+/data/
 models/
 *.safetensors
 *.bin

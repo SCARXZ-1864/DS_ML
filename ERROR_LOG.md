@@ -133,3 +133,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `.pre-commit-config.yaml`
 - **Verified by:** `uvx pre-commit run trailing-whitespace --files ...` → Passed
 - **Attempts:** 1
+
+### 2026-10-30 — New code under web/src/lib/data silently ignored by git
+- **Milestone:** Part 1 checkpoint 1, Task 2 (data contract)
+- **Error:** `The following paths are ignored by one of your .gitignore files: web/src/lib/data`. The commit didn't happen.
+- **Root cause:** `.gitignore` had `data/` without a leading slash, which matches a folder named `data` at any depth, not just the top-level datasets folder. The OneDrive mirror script had the same problem (`/XD data`), so it also skipped the folder.
+- **Fix:** changed the rule to `/data/` (repo root only). The mirror script now excludes only `C:\dev\review-intel\data`.
+- **Files changed:** `.gitignore`, `DS_ML_MODEL\.claude\mirror-review-intel.ps1` (outside the repo)
+- **Verified by:** `git check-ignore -v web/src/lib/data/schemas.ts` → not ignored; `git check-ignore -v data/raw/x.jsonl.gz` → still ignored by `/data/`
+- **Attempts:** 1
