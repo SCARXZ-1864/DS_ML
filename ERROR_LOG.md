@@ -149,5 +149,5 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Root cause:** the machine had only 0.2 GB of 15.5 GB RAM free (many desktop apps open). The process failed while asking for about 20 MB, so this is system memory pressure, not a problem in the code or the upgrade. The standalone `pnpm typecheck` passed.
 - **Fix:** none in code. Re-run `pnpm build` after freeing memory.
 - **Files changed:** none
-- **Verified by:** pending. `pnpm lint`, `pnpm typecheck`, `pnpm test` (112/112) and `pnpm audit --prod` (no known vulnerabilities) all pass on the upgraded tree.
+- **Verified by:** `pnpm build` passed on retry after memory was freed (2026-10-31). Also `pnpm lint`, `pnpm typecheck`, `pnpm test` (112/112) and `pnpm audit --prod` (no known vulnerabilities) all pass on the upgraded tree.
 - **Attempts:** 1
