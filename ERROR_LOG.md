@@ -142,3 +142,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `.gitignore`, `DS_ML_MODEL\.claude\mirror-review-intel.ps1` (outside the repo)
 - **Verified by:** `git check-ignore -v web/src/lib/data/schemas.ts` → not ignored; `git check-ignore -v data/raw/x.jsonl.gz` → still ignored by `/data/`
 - **Attempts:** 1
+
+### 2026-10-31 — `pnpm build` crashed: out of memory (environment)
+- **Milestone:** Part 1 checkpoint 1, verifying the next 16.4.1 / zod 4.6.7 security upgrade
+- **Error:** `FATAL ERROR: Zone Allocation failed - process out of memory` during the build's type-check step, after `✓ Compiled successfully`
+- **Root cause:** the machine had only 0.2 GB of 15.5 GB RAM free (many desktop apps open). The process failed while asking for about 20 MB, so this is system memory pressure, not a problem in the code or the upgrade. The standalone `pnpm typecheck` passed.
+- **Fix:** none in code. Re-run `pnpm build` after freeing memory.
+- **Files changed:** none
+- **Verified by:** pending. `pnpm lint`, `pnpm typecheck`, `pnpm test` (112/112) and `pnpm audit --prod` (no known vulnerabilities) all pass on the upgraded tree.
+- **Attempts:** 1
