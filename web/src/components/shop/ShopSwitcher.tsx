@@ -43,7 +43,7 @@ export function ShopSwitcher({ shops, currentId }: Props) {
               onClick={() => setOpen(false)}
               className="block px-3 py-1.5 text-sm hover:bg-panel aria-[current=page]:shadow-[inset_2px_0_0_var(--color-accent)]"
             >
-              <span className="block truncate">{s.name}</span>
+              <span className="block truncate" title={s.name}>{s.name}</span>
               <span className="block text-xs text-muted">{shopTypeLabel(s.type)}</span>
             </Link>
           </li>
@@ -62,7 +62,7 @@ export function ShopSwitcher({ shops, currentId }: Props) {
         className="flex w-full items-center justify-between gap-2 border border-line bg-panel px-3 py-2 text-left hover:border-accent"
       >
         <span className="min-w-0">
-          <span className="block truncate text-sm">{current?.name ?? "Choose a shop"}</span>
+          <span className="block truncate text-sm" title={current?.name}>{current?.name ?? "Choose a shop"}</span>
           {current && (
             <span className="block text-xs text-muted">
               {shopTypeLabel(current.type)}

@@ -44,7 +44,7 @@ export function OverviewView({ shop, overview, aspects, reviews }: Props) {
         <p className="label">
           {shopTypeLabel(shop.type)} · {fmtInt(shop.reviewCount)} reviews · {fmtMonth(all.from)} – {fmtMonth(all.to)}
         </p>
-        <h1 className="mt-1 font-serif text-3xl">{shop.name}</h1>
+        <h1 className="mt-1 break-words font-serif text-3xl">{shop.name}</h1>
       </header>
 
       <Headline headline={headline} className="mt-5 max-w-3xl" />

@@ -21,6 +21,14 @@ describe("OverviewView", () => {
     expect(screen.getAllByText("Freshness").length).toBeGreaterThan(0);
   });
 
+  it("lets a long shop name wrap instead of overflowing", () => {
+    render(
+      <OverviewView shop={{ ...fresh.shop, name: "AVeryLongShopNameWithoutAnySpacesThatWouldOverflow" }}
+        overview={fresh.overview} aspects={fresh.aspects} reviews={fresh.reviews} />,
+    );
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("break-words");
+  });
+
   it("recalculates the headline and numbers for a preset range", async () => {
     renderFresh();
     fireEvent.click(screen.getByRole("button", { name: "Last 6 months" }));

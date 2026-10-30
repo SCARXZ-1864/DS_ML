@@ -127,14 +127,17 @@ export function topComplaints(rows: AspectRow[], reviews: Review[], range: Month
     .sort((x, y) => y.negPct - x.negPct)
     .slice(0, limit)
     .map((r) => {
-      const negative = reviews.filter((rv) =>
-        rv.aspectMentions.some((m) => m.aspectId === r.id && m.sentiment === "negative"),
-      );
-      const inRange = negative.find((rv) => {
+      // Only quote a review from inside the selected range; a quote from another
+      // period would misrepresent what customers said in this one.
+      const quote = reviews.find((rv) => {
         const month = rv.date.slice(0, 7);
-        return month >= range.from && month <= range.to;
+        return (
+          month >= range.from &&
+          month <= range.to &&
+          rv.aspectMentions.some((m) => m.aspectId === r.id && m.sentiment === "negative")
+        );
       });
-      return { aspectId: r.id, name: r.name, negPct: r.negPct, quote: (inRange ?? negative[0])?.text ?? null };
+      return { aspectId: r.id, name: r.name, negPct: r.negPct, quote: quote?.text ?? null };
     });
 }
 

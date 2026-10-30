@@ -89,6 +89,12 @@ describe("aspects and complaints", () => {
     expect(items[1].quote).toBeNull();
   });
 
+  it("never shows a quote from outside the selected range", () => {
+    const reviews = [review("old", "2025-06-01", "wait", "negative")];
+    const items = topComplaints(aspectRows(aspects, range), reviews, range);
+    expect(items.find((i) => i.aspectId === "wait")?.quote).toBeNull();
+  });
+
   it("writes a range headline as structured parts", () => {
     const h = rangeHeadline({ from: "2026-01", to: "2026-03" }, summarize(series), "Wait time");
     expect(h.parts.map((p) => p.text).join("")).toBe(

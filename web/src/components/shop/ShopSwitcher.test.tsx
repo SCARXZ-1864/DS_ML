@@ -38,4 +38,13 @@ describe("ShopSwitcher", () => {
     fireEvent.click(screen.getByRole("button"));
     expect(screen.queryByText("Your shops")).toBeNull();
   });
+
+  it("keeps long shop names readable through a tooltip", () => {
+    const long = "Spice Route · Indiranagar 100 Feet Road Flagship Kitchen and Bar";
+    render(<ShopSwitcher shops={[shop("x", long, false)]} currentId="x" />);
+    fireEvent.click(screen.getByRole("button"));
+    const titled = screen.getAllByTitle(long);
+    expect(titled).toHaveLength(2); // the toggle and the menu entry
+    titled.forEach((el) => expect(el.className).toContain("truncate"));
+  });
 });
