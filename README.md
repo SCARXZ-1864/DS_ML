@@ -7,7 +7,7 @@ A web app that analyzes ~150k Amazon product reviews and shows a business:
 3. **Aspect-based sentiment**, e.g. *battery: negative, screen: positive*
 4. **A chat box** that answers plain-English questions with **citations to real reviews** (RAG)
 
-> **Status:** 🚧 Milestone **M0, Foundations** (see [PLAN.md](PLAN.md) §4)
+> **Status:** 🚧 Part 1 (frontend with mock data): **checkpoint 1 done**. Tropical design system, data contract, shop shell and an interactive Overview page. See [the spec](docs/superpowers/specs/2026-10-30-frontend-mock-design.md).
 
 | Doc | What's in it |
 |-----|--------------|
@@ -68,6 +68,12 @@ INFERENCE_URL=http://127.0.0.1:7860 pnpm dev
 (cd inference && uv run ruff check . && uv run pytest)
 (cd web       && pnpm lint && pnpm typecheck && pnpm test && pnpm build)
 ```
+
+## Frontend preview (mock data)
+
+`cd web && pnpm dev`, then open http://localhost:3000. Every screen currently runs on seeded mock data from
+`web/src/lib/data/mock/`. Pages only use the `DataSource` interface in `web/src/lib/data/index.ts`, so later
+parts swap in the real backend by changing one line.
 
 ## Results
 
