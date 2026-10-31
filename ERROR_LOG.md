@@ -160,3 +160,21 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `web/vitest.config.mts`
 - **Verified by:** `pnpm exec vitest run --pool=threads` → 38 files, 188/188 passed, no errors, at 0.3 GB free RAM
 - **Attempts:** 2 (Task 7's first re-run passed by chance at 1.7 GB free; Task 8 failed again, so the cause was fixed instead of retried)
+
+### 2026-10-31 — Stale production server answered requests during the walkthrough
+- **Milestone:** Part 1 checkpoint 2, Task 12 (browser walkthrough)
+- **Error:** `listen EADDRINUSE: address already in use :::3000`, and every new page returned 404.
+- **Root cause:** stopping the checkpoint 1 `pnpm start` background task only ended the pnpm wrapper. Its child `node … next start` (still on Next 16.4.0) kept serving the old build on port 3000 for a day.
+- **Fix:** found the owner with `Get-NetTCPConnection -LocalPort 3000`, confirmed it was our own `review-intel\web` next server, and stopped it. After each walkthrough, check the port and stop any leftover server.
+- **Files changed:** none (process hygiene)
+- **Verified by:** all 6 shop pages returned 200 from the new build. The headless walkthrough passed with 0 console errors and 0 failed requests.
+- **Attempts:** 1
+
+### 2026-10-31 — Chrome tab stopped rendering (environment, not the app)
+- **Milestone:** Part 1 checkpoint 2, Task 12
+- **Error:** `Page.captureScreenshot timed out after 30000ms`. Pages stayed un-hydrated (streamed Suspense content never revealed, clicks did nothing).
+- **Root cause:** the automation tab reported "visible" but produced no frames: `requestAnimationFrame` never fired. React reveals streamed boundaries on the next frame, so it never hydrated. This is consistent with the machine being near its memory limit. The app was not at fault.
+- **Fix:** verified in a fresh headless browser instead (browser-automation skill). There, every page hydrated, all interactions worked, and the console had 0 errors.
+- **Files changed:** none
+- **Verified by:** headless walkthrough script, with all assertions true and screenshots reviewed
+- **Attempts:** 2 screenshot attempts, then switched approach
