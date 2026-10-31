@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Shop } from "@/lib/data/schemas";
+import { CommandPalette } from "./CommandPalette";
 import { visibleNav } from "./shop-nav";
 import { ShopSwitcher } from "./ShopSwitcher";
 
@@ -15,8 +16,9 @@ export function Sidebar({ shops, current }: Props) {
       <Link href="/" className="font-serif text-lg">
         Review <span className="text-accent">Intelligence</span>
       </Link>
-      <div className="my-4">
+      <div className="my-4 grid gap-2">
         <ShopSwitcher shops={shops} currentId={current?.id ?? null} />
+        <CommandPalette shops={shops} current={current} />
       </div>
       {current && (
         <nav aria-label="Shop pages">

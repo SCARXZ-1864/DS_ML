@@ -10,7 +10,7 @@ vi.mock("next/link", () => ({
     <a href={href} {...rest}>{children}</a>
   ),
 }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/shops/fresh/overview" }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/shops/fresh/overview", useRouter: () => ({ push: vi.fn() }) }));
 
 const fresh: Shop = {
   id: "fresh", name: "FreshCart Grocery", type: "grocery", isDemo: true, reviewCount: 10,
