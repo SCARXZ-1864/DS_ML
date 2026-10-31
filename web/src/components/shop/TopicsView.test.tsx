@@ -10,13 +10,13 @@ const fresh = buildDb(SHOP_DEFS).get("saffron-table")!;
 const renderView = () => render(<TopicsView shop={fresh.shop} topics={fresh.topics} reviews={fresh.reviews} />);
 
 describe("TopicsView", () => {
-  it("draws one selectable bubble per topic and shows the biggest topic first", () => {
+  it("draws one selectable cell per topic and shows the biggest topic first", () => {
     renderView();
     expect(screen.getAllByRole("button", { name: /reviews,/ })).toHaveLength(fresh.topics.length);
     expect(screen.getByRole("heading", { level: 2, name: fresh.topics[0].label })).toBeTruthy();
   });
 
-  it("shows a topic's details when its bubble is chosen", () => {
+  it("shows a topic's details when its cell is chosen", () => {
     renderView();
     const target = fresh.topics[2];
     fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${target.label}`) }));
@@ -31,10 +31,10 @@ describe("TopicsView", () => {
     expect(panel.textContent).not.toMatch(/% positive/);
   });
 
-  it("shows a visible focus ring on bubbles for keyboard users", () => {
+  it("shows a visible focus ring on cells for keyboard users", () => {
     renderView();
-    const bubble = screen.getAllByRole("button", { name: /reviews,/ })[0];
-    expect(bubble.querySelector("circle")!.getAttribute("class")).toContain("group-focus-visible:stroke-accent");
+    const cell = screen.getAllByRole("button", { name: /reviews,/ })[0];
+    expect(cell.querySelector("polygon")!.getAttribute("class")).toContain("group-focus-visible:stroke-accent");
   });
 
   it("filters to complaint topics", () => {

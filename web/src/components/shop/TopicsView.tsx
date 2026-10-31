@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Sparkline } from "@/components/charts/Sparkline";
-import { TopicBubbles } from "@/components/charts/TopicBubbles";
+import { TopicHoneycomb } from "@/components/charts/TopicHoneycomb";
 import type { Review, Shop, Topic } from "@/lib/data/schemas";
 import { fmtInt } from "@/lib/format";
 import { PageHeader } from "./PageHeader";
@@ -28,7 +28,7 @@ export function TopicsView({ shop, topics, reviews }: Props) {
   return (
     <div className="animate-fade-rise">
       <PageHeader eyebrow={`${shop.name} · topics`} title="What customers talk about">
-        Each bubble is a theme found in the reviews. Bigger means more reviews; redder means more complaints.
+        Each cell is a theme found in the reviews. The biggest sits in the centre, the number is its review count, and redder means more complaints.
       </PageHeader>
 
       <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Filter topics">
@@ -50,7 +50,7 @@ export function TopicsView({ shop, topics, reviews }: Props) {
       ) : (
         <div className="mt-4 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div>
-            <TopicBubbles topics={topics} visibleIds={visibleIds} selectedId={selectedId} onSelect={setSelectedId} />
+            <TopicHoneycomb topics={topics} visibleIds={visibleIds} selectedId={selectedId} onSelect={setSelectedId} />
             {visibleIds.size === 0 && <p className="text-sm text-muted">No topics match this filter.</p>}
           </div>
           {selected && (
