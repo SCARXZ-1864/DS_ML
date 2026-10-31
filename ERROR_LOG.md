@@ -151,3 +151,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** none
 - **Verified by:** `pnpm build` passed on retry after memory was freed (2026-10-31). Also `pnpm lint`, `pnpm typecheck`, `pnpm test` (112/112) and `pnpm audit --prod` (no known vulnerabilities) all pass on the upgraded tree.
 - **Attempts:** 1
+
+### 2026-10-31 — vitest "spawn UNKNOWN" while running the test suite
+- **Milestone:** Part 1 checkpoint 2, Tasks 7–8
+- **Error:** `Unhandled Errors … Caused by: Error: spawn UNKNOWN (errno -4094, syscall spawn)`. All tests that started passed, but vitest exited non-zero.
+- **Root cause:** vitest forks one worker process per test file and starts them in parallel (17–36 at once). On this low-memory machine, Windows refused some of those process launches.
+- **Fix:** capped `maxWorkers: 4` in `web/vitest.config.mts`. No tests were changed or skipped.
+- **Files changed:** `web/vitest.config.mts`
+- **Verified by:** `pnpm test` → 36 files, 180/180 passed, no errors
+- **Attempts:** 1 (Task 7's first re-run passed by chance at 1.7 GB free; Task 8 failed again, so the cause was fixed instead of retried)
