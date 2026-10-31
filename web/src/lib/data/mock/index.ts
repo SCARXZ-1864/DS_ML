@@ -2,6 +2,7 @@ import type { DataSource } from "../index";
 import { deleteAlertRule, listAlertEvents, listAlertRules, markAlertsRead, saveAlertRule } from "./alerts";
 import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from "../derive";
 import { composeAnswer, streamChunks } from "./ask";
+import { compareShops } from "./compare";
 import { predictText } from "./predict";
 import { queryReviews } from "./query";
 import { createShareLink, getReport, listShareLinks, revokeShareLink } from "./share";
@@ -152,5 +153,9 @@ export const mockDataSource: DataSource = {
 
   async getReport(token) {
     return getReport(token);
+  },
+
+  async compare(ids) {
+    return compareShops(ids);
   },
 };
