@@ -29,6 +29,7 @@ The work is split into 7 parts, built in order:
 - Owner-only shop pages: uploads (wizard + history), alerts, share.
 - Mock data for 3 demo shops (Saffron Table, a restaurant; FreshCart, a grocery; VoltHome, an appliance store) and 2 owner shops (Spice Route Indiranagar and Koramangala).
 - Simulated upload processing, chat streaming and live prediction.
+- **Review sources (added 2026-10-31):** a mock "Connect Google Business Profile" flow that auto-imports an owner's reviews, and a public "search any shop" preview of a shop's few public Google reviews. Both are simulated here; the real Google APIs come in later parts.
 
 **Out of scope (later parts)**
 - Real auth.
@@ -36,7 +37,8 @@ The work is split into 7 parts, built in order:
 - File parsing on the server.
 - Real models and LLM.
 - Sending email.
-- Team members, billing and Google Business Profile import. These are deferred beyond v1.
+- Real Google OAuth and Google API calls (Business Profile and Places).
+- Team members and billing. These are deferred beyond v1.
 
 ## 3. Decisions
 
@@ -57,12 +59,13 @@ The work is split into 7 parts, built in order:
 PUBLIC
   /                      Landing: hero, 3 demo shop cards, how-it-works steps, sign up
   /how-it-works          Models, metrics, limitations (placeholder numbers until Parts 2–6)
+  /search                Search any shop by name → preview analysis of its ~5 public Google reviews, labelled "preview", with a sign-up prompt
   /login  /signup        Mock auth: any credentials create a session cookie
   /r/[token]             Shared report: read-only, light theme, print/PDF friendly
 
 OWNER AREA (login required)
   /app                   My shops: cards with headline stats, alert badge, sparkline, "Add shop"
-  /app/shops/new         Name + type (restaurant / grocery / electronics / clothing / salon / other)
+  /app/shops/new         Name + type (restaurant / grocery / electronics / clothing / salon / other), then pick a source: Connect Google or Upload CSV
   /app/compare           Two shops side by side per aspect, gaps highlighted
   /app/settings          Account name and alert email
 
@@ -73,6 +76,7 @@ SHOP PAGES  /shops/[shopId]/…   demo: public · owner shop: owner only
   reviews                Filters (sentiment, stars, aspect), sort, search, animated reordering
   ask                    Suggested questions, streamed answer, citation chips linked to sources
   try                    Live as-you-type analysis: highlighted words, gauge, aspect tags
+  sources   (owner)      Google Business Profile: connect (mock consent) → pick location → first import; status, last sync, "Sync now", disconnect
   uploads   (owner)      History table + wizard: file → column mapping → preview → processing → what changed
   alerts    (owner)      Rules with toggles and thresholds, add rule, recent-alert timeline
   share     (owner)      Create a link (period, sections), copy, revoke, open
@@ -96,6 +100,8 @@ Review      { id, date, stars | null, text, sentiment, confidence, helpful?, asp
 Page<T>     { items: T[], nextCursor | null, total }
 Upload      { id, shopId, fileName, createdAt, status: "processing"|"done"|"failed", rowsAccepted,
               rowsSkipped{empty,duplicate,invalid}, stages: {name, status, seconds?}[], changes: Change[], error? }
+Source      { id, shopId, kind: "google"|"csv", status: "connected"|"syncing"|"error"|"disconnected", accountLabel?, locationName?, lastSyncAt?, reviewsImported, error? }
+PlacePreview { query, place: { name, address, rating, totalRatings } | null, reviews: Review[], summary: { positivePct, negativePct, aspects: {name, sentiment}[] }, isPreview: true }
 Change      { kind: "rise"|"fall"|"new_aspect", aspectId, deltaPct?, note }
 ColumnGuess { column, role: "text"|"stars"|"date"|"ignore", samples[] }
 AlertRule   { id, shopId, kind: "aspect_rise"|"rating_below"|"new_aspect"|"digest", params, enabled }
@@ -107,7 +113,7 @@ Prediction  { sentiment, score (-1..1), confidence, tokens: {text, tone?, aspect
 Comparison  { shops: Shop[], rows: { group, name, net: number[] }[] }
 ```
 
-**Data layer:** `web/src/lib/data/index.ts` exports a `DataSource` interface. Its methods are listShops, getShop, getOverview, getAspects, getTopics, getReviews, ask (async iterable), predict, listUploads, guessColumns, startUpload, getUpload, listAlertRules, saveAlertRule, listAlertEvents, listShareLinks, createShareLink, revokeShareLink, getReport and compare. Today a single `data` export points at the mock implementation; later parts swap in the real one.
+**Data layer:** `web/src/lib/data/index.ts` exports a `DataSource` interface. Its methods are listShops, getShop, getOverview, getAspects, getTopics, getReviews, ask (async iterable), predict, listUploads, guessColumns, startUpload, getUpload, listAlertRules, saveAlertRule, listAlertEvents, listShareLinks, createShareLink, revokeShareLink, getReport, compare, listSources, connectGoogle, syncSource, disconnectSource and searchPlaces. Today a single `data` export points at the mock implementation; later parts swap in the real one.
 
 **Rules**
 - **The headline is structured parts, never HTML.** Owners will upload review text, and rendering HTML from data would open an XSS hole.
@@ -201,8 +207,8 @@ There is a stop for the user's approval after each checkpoint.
 
 1. **Foundation + Overview:** install deps, tokens and fonts, data contract and mocks, app shell (sidebar, switcher, demo bar), the Overview page with the timeline, aspect bars and donut.
 2. **Analytics pages:** Topics, Aspects (drawer), Reviews, Ask, Try it, Ctrl+K palette.
-3. **Owner area:** mock auth, My shops, Add shop, Uploads wizard, Alerts, Share, Report, Compare, Settings.
-4. **Public + polish:** Landing, How it works, empty/error states everywhere, accessibility pass, mobile layout, README screenshots.
+3. **Owner area:** mock auth, My shops, Add shop, Sources (Connect Google), Uploads wizard, Alerts, Share, Report, Compare, Settings.
+4. **Public + polish:** Landing, How it works, Search teaser, empty/error states everywhere, accessibility pass, mobile layout, README screenshots.
 
 ## 10. Definition of done
 
@@ -216,4 +222,5 @@ There is a stop for the user's approval after each checkpoint.
 ## 11. Follow-ups outside this spec
 
 - **PLAN.md, RISKS.md and the README need updating for the new scope.** That means multi-domain data (Yelp + Amazon grocery/appliances), automatic aspect discovery, multi-tenant DB, upload jobs and SaaS features. It will be done as a separate docs change before Part 2 starts.
+- **Google APIs (added 2026-10-31):** Business Profile API access needs Google's approval, and Places API review limits and storage/display rules must be checked against current docs before the real integration. Scraping Amazon, Yelp or Google is ruled out (terms of service).
 - **The Yelp Open Dataset licence (academic, non-commercial) needs checking** before Part 2 uses it.
