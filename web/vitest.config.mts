@@ -11,7 +11,9 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./src/test/setup.ts"],
-    // One process per test file, all at once, fails to spawn on low-memory machines (ERROR_LOG 2026-10-31).
+    // Worker threads instead of child processes, and at most 4 at a time: launching a process
+    // per test file fails with "spawn UNKNOWN" on low-memory machines (ERROR_LOG 2026-10-31).
+    pool: "threads",
     maxWorkers: 4,
   },
 });
