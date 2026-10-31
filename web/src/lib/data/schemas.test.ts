@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AskRequestSchema, ChatChunkSchema, HeadlineSchema, MonthPointSchema, PredictRequestSchema, PredictionSchema,
-  ReviewQuerySchema, ReviewSchema, ShopSchema, TopicSchema,
+  ReviewQuerySchema, ReviewSchema, ShopSchema, TopicSchema, UploadRequestSchema, AlertRuleSchema, ShareInputSchema,
+  SignupSchema, NewShopSchema,
 } from "./schemas";
 
 const point = { month: "2026-10", count: 10, pos: 7, neg: 2, neu: 1, stars: [1, 1, 1, 3, 4] };
@@ -78,5 +79,40 @@ describe("checkpoint 2 contract", () => {
     expect(PredictionSchema.safeParse(prediction).success).toBe(false);
     const topic = { id: "t", label: "T", keywords: ["k"], size: 3, negShare: 1.2, monthly: [], representativeReviewIds: [] };
     expect(TopicSchema.safeParse(topic).success).toBe(false);
+  });
+});
+
+describe("owner-area contract", () => {
+  const row = { text: "Lovely food" };
+  const skipped = { empty: 0, duplicate: 0, invalid: 0 };
+
+  it("limits an upload to 5,000 rows", () => {
+    expect(UploadRequestSchema.safeParse({ fileName: "a.csv", rows: Array(5000).fill(row), skipped }).success).toBe(true);
+    expect(UploadRequestSchema.safeParse({ fileName: "a.csv", rows: Array(5001).fill(row), skipped }).success).toBe(false);
+  });
+
+  it("rejects an upload row whose text is blank", () => {
+    expect(UploadRequestSchema.safeParse({ fileName: "a.csv", rows: [{ text: "   " }], skipped }).success).toBe(false);
+  });
+
+  it("caps an aspect-rise threshold at 50 points", () => {
+    const rule = (thresholdPts: number) => ({
+      id: "r-1", shopId: "s", enabled: true, kind: "aspect_rise", params: { aspectId: "x", thresholdPts },
+    });
+    expect(AlertRuleSchema.safeParse(rule(51)).success).toBe(false);
+    expect(AlertRuleSchema.safeParse(rule(10)).success).toBe(true);
+  });
+
+  it("needs at least one section in a share link", () => {
+    expect(ShareInputSchema.safeParse({ period: "30d", sections: [] }).success).toBe(false);
+  });
+
+  it("needs a signup password of at least 8 characters", () => {
+    expect(SignupSchema.safeParse({ name: "A", email: "a@b.co", password: "1234567" }).success).toBe(false);
+  });
+
+  it("trims a new shop's name and rejects an empty one", () => {
+    expect(NewShopSchema.parse({ name: "  Bakery  ", type: "other" }).name).toBe("Bakery");
+    expect(NewShopSchema.safeParse({ name: "", type: "other" }).success).toBe(false);
   });
 });

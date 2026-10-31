@@ -144,6 +144,152 @@ export const PredictRequestSchema = z.object({
   text: z.string().trim().min(1, "Type a review first").max(2000, "Reviews are limited to 2,000 characters"),
 });
 
+// ---- Owner area (checkpoint 3) ----
+
+const isoDateTime = z.iso.datetime();
+const email = z.string().trim().toLowerCase().pipe(z.email("Enter a valid email address"));
+
+export const UserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().min(1),
+  alertEmail: z.string().min(1),
+});
+
+export const StageStatusSchema = z.enum(["pending", "running", "done", "failed"]);
+export const UploadStageSchema = z.object({ name: z.string().min(1), status: StageStatusSchema, seconds: z.number().optional() });
+
+export const ChangeSchema = z.object({
+  kind: z.enum(["rise", "fall", "new_aspect"]),
+  aspectId: z.string().min(1),
+  deltaPct: z.number().optional(),
+  note: z.string().min(1),
+});
+
+const SkippedSchema = z.object({ empty: count, duplicate: count, invalid: count });
+
+export const UploadSchema = z.object({
+  id: z.string().min(1),
+  shopId: z.string().min(1),
+  fileName: z.string().min(1),
+  createdAt: isoDateTime,
+  status: z.enum(["processing", "done", "failed"]),
+  rowsAccepted: count,
+  rowsSkipped: SkippedSchema,
+  stages: z.array(UploadStageSchema),
+  changes: z.array(ChangeSchema),
+  error: z.string().optional(),
+});
+
+export const UploadRowSchema = z.object({
+  text: z.string().trim().min(1).max(5000),
+  stars: z.number().int().min(1).max(5).optional(),
+  date: isoDate.optional(),
+});
+
+export const UploadRequestSchema = z.object({
+  fileName: z.string().trim().min(1).max(200),
+  rows: z.array(UploadRowSchema).min(1, "The file has no reviews to import").max(5000, "The limit is 5,000 reviews per upload"),
+  skipped: SkippedSchema,
+});
+
+export const ColumnRoleSchema = z.enum(["text", "stars", "date", "ignore"]);
+export const ColumnGuessSchema = z.object({ column: z.string(), role: ColumnRoleSchema, samples: z.array(z.string()) });
+
+export const SourceSchema = z.object({
+  id: z.string().min(1),
+  shopId: z.string().min(1),
+  kind: z.enum(["google", "csv"]),
+  status: z.enum(["connected", "syncing", "error", "disconnected"]),
+  accountLabel: z.string().optional(),
+  locationName: z.string().optional(),
+  lastSyncAt: isoDateTime.optional(),
+  reviewsImported: count,
+  error: z.string().optional(),
+});
+
+export const GoogleLocationSchema = z.object({ id: z.string().min(1), name: z.string().min(1), address: z.string().min(1) });
+
+export const WeekdaySchema = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+const ruleBase = { id: z.string().min(1), shopId: z.string().min(1), enabled: z.boolean() };
+
+export const AlertRuleSchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...ruleBase,
+    kind: z.literal("aspect_rise"),
+    params: z.object({ aspectId: z.string().min(1), thresholdPts: z.number().int().min(1).max(50) }),
+  }),
+  z.object({ ...ruleBase, kind: z.literal("rating_below"), params: z.object({ stars: z.number().min(1).max(5) }) }),
+  z.object({ ...ruleBase, kind: z.literal("new_aspect"), params: z.object({}) }),
+  z.object({ ...ruleBase, kind: z.literal("digest"), params: z.object({ weekday: WeekdaySchema }) }),
+]);
+
+export const AlertEventSchema = z.object({
+  id: z.string().min(1),
+  shopId: z.string().min(1),
+  ruleId: z.string().min(1),
+  createdAt: isoDateTime,
+  title: z.string().min(1),
+  detail: z.string(),
+  tone: ToneSchema,
+  read: z.boolean(),
+});
+
+export const SharePeriodSchema = z.enum(["30d", "90d", "all"]);
+export const ShareSectionSchema = z.enum(["overview", "aspects", "quotes"]);
+
+export const ShareLinkSchema = z.object({
+  token: z.string().min(1),
+  shopId: z.string().min(1),
+  period: SharePeriodSchema,
+  sections: z.array(ShareSectionSchema).min(1),
+  createdAt: isoDateTime,
+  views: count,
+  revokedAt: isoDateTime.nullable(),
+});
+
+export const ReportSchema = z.object({
+  shop: ShopSchema,
+  period: SharePeriodSchema,
+  sections: z.array(ShareSectionSchema).min(1),
+  headline: HeadlineSchema,
+  kpis: KpisSchema,
+  aspects: z.array(AspectSchema),
+  quotes: z.array(ReviewSchema),
+});
+
+export const ComparisonSchema = z.object({
+  shops: z.array(ShopSchema).length(2),
+  rows: z.array(z.object({ group: z.string().min(1), name: z.string().min(1), net: z.array(z.number().nullable()).length(2) })),
+});
+
+// Form inputs. Messages are shown to the user as they are.
+export const LoginSchema = z.object({ email, password: z.string().min(1, "Enter your password") });
+
+export const SignupSchema = z.object({
+  name: z.string().trim().min(1, "Enter your name").max(60, "Keep your name under 60 characters"),
+  email,
+  password: z.string().min(8, "Use at least 8 characters"),
+});
+
+export const NewShopSchema = z.object({
+  name: z.string().trim().min(1, "Give the shop a name").max(60, "Keep the name under 60 characters"),
+  type: ShopTypeSchema,
+});
+
+export const SettingsSchema = z.object({
+  name: z.string().trim().min(1, "Enter your name").max(60, "Keep your name under 60 characters"),
+  alertEmail: email,
+});
+
+export const ShareInputSchema = z.object({
+  period: SharePeriodSchema,
+  sections: z.array(ShareSectionSchema).min(1, "Pick at least one section"),
+});
+
+/** What a form's Server Action returns: a message for the form and/or one per field. */
+export type ActionState = { ok: boolean; message?: string; fieldErrors?: Partial<Record<string, string>> };
+
 export type ShopType = z.infer<typeof ShopTypeSchema>;
 export type Tone = z.infer<typeof ToneSchema>;
 export type Shop = z.infer<typeof ShopSchema>;
@@ -159,3 +305,24 @@ export type ReviewQuery = z.infer<typeof ReviewQuerySchema>;
 export type ReviewPage = z.infer<typeof ReviewPageSchema>;
 export type ChatChunk = z.infer<typeof ChatChunkSchema>;
 export type Prediction = z.infer<typeof PredictionSchema>;
+export type User = z.infer<typeof UserSchema>;
+export type StageStatus = z.infer<typeof StageStatusSchema>;
+export type UploadStage = z.infer<typeof UploadStageSchema>;
+export type Change = z.infer<typeof ChangeSchema>;
+export type Upload = z.infer<typeof UploadSchema>;
+export type UploadRow = z.infer<typeof UploadRowSchema>;
+export type UploadRequest = z.infer<typeof UploadRequestSchema>;
+export type ColumnRole = z.infer<typeof ColumnRoleSchema>;
+export type ColumnGuess = z.infer<typeof ColumnGuessSchema>;
+export type Source = z.infer<typeof SourceSchema>;
+export type GoogleLocation = z.infer<typeof GoogleLocationSchema>;
+export type Weekday = z.infer<typeof WeekdaySchema>;
+export type AlertRule = z.infer<typeof AlertRuleSchema>;
+export type AlertEvent = z.infer<typeof AlertEventSchema>;
+export type SharePeriod = z.infer<typeof SharePeriodSchema>;
+export type ShareSection = z.infer<typeof ShareSectionSchema>;
+export type ShareLink = z.infer<typeof ShareLinkSchema>;
+export type ShareInput = z.infer<typeof ShareInputSchema>;
+export type Report = z.infer<typeof ReportSchema>;
+export type Comparison = z.infer<typeof ComparisonSchema>;
+export type NewShopInput = z.infer<typeof NewShopSchema>;
