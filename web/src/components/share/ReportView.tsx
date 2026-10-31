@@ -3,7 +3,7 @@ import { Headline } from "@/components/shop/Headline";
 import { ReviewCard } from "@/components/shop/ReviewCard";
 import type { Report } from "@/lib/data/schemas";
 import { fmtInt, fmtPct, fmtStars, shopTypeLabel } from "@/lib/format";
-import { PERIOD_LABEL } from "./LinkList";
+import { PERIOD_LABEL } from "./labels";
 import { PrintButton } from "./PrintButton";
 
 /** The shared, read-only report: light theme, laid out to print on A4. */

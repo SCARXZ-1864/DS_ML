@@ -205,3 +205,21 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `web/src/app/actions/alerts.ts`, `web/src/app/actions/alerts.actions.test.ts`
 - **Verified by:** the new test failed with the message above, then passed; full suite 341/341
 - **Attempts:** 1
+
+### 2026-10-31 — Changes made by Server Actions didn't show until a page reload
+- **Milestone:** Part 1 checkpoint 3, Task 13 (production walkthrough)
+- **Error:** after "Create link", "Mark all read" or "Add rule", the action succeeded (its message showed, and the change appeared after a reload), but the list on screen didn't update. This happened only on pages opened with a full page load; it worked after client-side navigation.
+- **Root cause:** the actions called `refresh()` from `next/cache`. On a page opened with a full load under Partial Prerendering, that didn't re-fetch the streamed (per-request) part of the page. `revalidatePath` is documented to "update the UI immediately" when called in a Server Function. Confirmed by switching only the share actions and re-running the repro: 0 → 1 links without a reload.
+- **Fix:** every action now calls `revalidatePath(\`/shops/${shopId}\`, "layout")` (or `revalidatePath("/", "layout")` for Settings, whose name shows in every sidebar).
+- **Files changed:** `web/src/app/actions/{alerts,share,sources,shops}.ts`, the two action test mocks
+- **Verified by:** the full headless walkthrough on a production build: rules 3 → 4, unread 2 → 0, links 1 → 2, with 0 console errors
+- **Attempts:** 1 (hypothesis tested on one action before changing the rest)
+
+### 2026-10-31 — Shared report showed "RESTAURANT · · READ-ONLY REPORT" (period missing)
+- **Milestone:** Part 1 checkpoint 3, Task 13
+- **Error:** the period label was blank on `/r/[token]`.
+- **Root cause:** the server component `ReportView` imported `PERIOD_LABEL` from `LinkList.tsx`, a `"use client"` file. Across the server/client boundary, a plain object exported from a client module arrives as a client reference, not the object, so the lookup returned nothing. Unit tests can't catch this because vitest doesn't apply the server/client split.
+- **Fix:** moved the labels to a plain module, `components/share/labels.ts`, which both sides import. Also moved the report to its own `(report)` route group, so the dark site header no longer sits above the light, printable report.
+- **Files changed:** `web/src/components/share/{labels.ts,LinkList.tsx,ShareForm.tsx,ReportView.tsx}`, `web/src/app/(report)/r/[token]/page.tsx` (moved)
+- **Verified by:** the production screenshot shows "RESTAURANT · LAST 90 DAYS · READ-ONLY REPORT" with no dark band
+- **Attempts:** 1

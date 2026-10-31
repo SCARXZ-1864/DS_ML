@@ -84,7 +84,7 @@ export function RuleRow({ rule, aspectName, onToggle, onSave, onDelete }: Props)
               onChange={(e) => setValue(e.target.value)}
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? `${sentenceId}-error` : undefined}
-              className={`${INPUT} w-20 py-1.5 font-mono`}
+              className={`${INPUT} max-w-24 py-1.5 font-mono`}
             />
             <button type="button" onClick={save} className={BUTTON_QUIET}>Save</button>
           </>

@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { data } from "@/lib/data";
 import { ownerGuard } from "@/lib/data/load";
 import { type ActionState, ShareInputSchema } from "@/lib/data/schemas";
@@ -14,13 +14,13 @@ export async function createLinkAction(shopId: string, _prev: ActionState, form:
   const parsed = ShareInputSchema.safeParse({ period: field(form, "period"), sections: form.getAll("sections").map(String) });
   if (!parsed.success) return invalid(parsed.error);
   await data.createShareLink(shopId, parsed.data);
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true, message: "Link created" };
 }
 
 export async function revokeLinkAction(shopId: string, token: string): Promise<ActionState> {
   if ("error" in (await ownerGuard(shopId))) return NOT_FOUND;
   if (!(await data.revokeShareLink(shopId, token))) return NOT_FOUND;
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }

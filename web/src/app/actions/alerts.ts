@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { data } from "@/lib/data";
 import { ownerGuard } from "@/lib/data/load";
 import { type ActionState, AlertRuleSchema } from "@/lib/data/schemas";
@@ -22,7 +22,7 @@ export async function saveRule(shopId: string, input: unknown): Promise<ActionSt
   const rule = { ...parsed.data, id: isNew ? "" : parsed.data.id, shopId };
   if (rule.id && !(await ownRule(shopId, rule.id))) return NOT_FOUND;
   await data.saveAlertRule(rule);
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }
 
@@ -31,7 +31,7 @@ export async function toggleRule(shopId: string, ruleId: string, enabled: boolea
   const rule = await ownRule(shopId, ruleId);
   if (!rule) return NOT_FOUND;
   await data.saveAlertRule({ ...rule, enabled });
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }
 
@@ -39,13 +39,13 @@ export async function deleteRule(shopId: string, ruleId: string): Promise<Action
   if ("error" in (await ownerGuard(shopId))) return NOT_FOUND;
   if (!(await ownRule(shopId, ruleId))) return NOT_FOUND;
   await data.deleteAlertRule(shopId, ruleId);
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }
 
 export async function markAllRead(shopId: string): Promise<ActionState> {
   if ("error" in (await ownerGuard(shopId))) return NOT_FOUND;
   await data.markAlertsRead(shopId);
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }

@@ -2,11 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { BUTTON_QUIET } from "@/components/forms/Field";
-import type { ActionState, SharePeriod, ShareSection, ShareLink } from "@/lib/data/schemas";
+import type { ActionState, ShareLink } from "@/lib/data/schemas";
 import { fmtDate } from "@/lib/format";
-
-export const PERIOD_LABEL: Record<SharePeriod, string> = { "30d": "Last 30 days", "90d": "Last 90 days", all: "All time" };
-export const SECTION_LABEL: Record<ShareSection, string> = { overview: "Overview", aspects: "Aspects", quotes: "Quotes" };
+import { PERIOD_LABEL, SECTION_LABEL } from "./labels";
 
 type Props = { links: ShareLink[]; origin: string; revokeAction: (shopId: string, token: string) => Promise<ActionState> };
 

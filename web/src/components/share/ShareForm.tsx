@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { BUTTON, FormMessage } from "@/components/forms/Field";
 import { type ActionState, SharePeriodSchema, ShareSectionSchema } from "@/lib/data/schemas";
-import { PERIOD_LABEL, SECTION_LABEL } from "./LinkList";
+import { PERIOD_LABEL, SECTION_LABEL } from "./labels";
 
 type Props = { action: (prev: ActionState, form: FormData) => Promise<ActionState> };
 

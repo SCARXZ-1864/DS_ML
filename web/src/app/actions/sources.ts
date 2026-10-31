@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { data } from "@/lib/data";
 import { ownerGuard } from "@/lib/data/load";
@@ -23,7 +23,7 @@ export async function syncNowAction(shopId: string, sourceId: string): Promise<A
   const guard = await ownerGuard(shopId);
   if ("error" in guard) return NOT_FOUND;
   if (!(await data.syncSource(shopId, sourceId))) return { ok: false, message: "That source can't sync right now." };
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }
 
@@ -31,6 +31,6 @@ export async function disconnectAction(shopId: string, sourceId: string): Promis
   const guard = await ownerGuard(shopId);
   if ("error" in guard) return NOT_FOUND;
   if (!(await data.disconnectSource(shopId, sourceId))) return NOT_FOUND;
-  refresh();
+  revalidatePath(`/shops/${shopId}`, "layout");
   return { ok: true };
 }

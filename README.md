@@ -7,7 +7,7 @@ A web app that analyzes ~150k Amazon product reviews and shows a business:
 3. **Aspect-based sentiment**, e.g. *battery: negative, screen: positive*
 4. **A chat box** that answers plain-English questions with **citations to real reviews** (RAG)
 
-> **Status:** 🚧 Part 1 (frontend with mock data): **checkpoint 2 done**. Topics, Aspects (with a reviews drawer), Reviews, Ask, Try it and a Ctrl+K palette, on top of checkpoint 1's design system and Overview. See [the spec](docs/superpowers/specs/2026-10-30-frontend-mock-design.md).
+> **Status:** 🚧 Part 1 (frontend with mock data): **checkpoint 3 done**. Mock login and signup, My shops, Add shop, Settings, a CSV upload wizard with live processing, Sources with a simulated Google Business Profile connection, Alerts, shareable read-only reports and Compare, on top of checkpoints 1–2. Log in as `owner@demo.test` to see the sample owner shops. See [the spec](docs/superpowers/specs/2026-10-30-frontend-mock-design.md).
 
 | Doc | What's in it |
 |-----|--------------|

@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSessionUserId } from "@/lib/auth/session";
 import { data } from "@/lib/data";
@@ -25,6 +25,6 @@ export async function saveSettings(_prev: ActionState, form: FormData): Promise<
   const parsed = SettingsSchema.safeParse({ name: field(form, "name"), alertEmail: field(form, "alertEmail") });
   if (!parsed.success) return invalid(parsed.error);
   await data.saveUser({ ...user, ...parsed.data });
-  refresh(); // the sidebar shows the name, so re-render the page with the new one
+  revalidatePath("/", "layout"); // the sidebar shows the name on every page
   return { ok: true, message: "Saved" };
 }
