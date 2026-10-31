@@ -4,6 +4,7 @@ export type ShopNavItem = { slug: string; label: string; ownerOnly?: boolean };
 // checkpoint 3 the owner-only ones (with ownerOnly: true).
 export const SHOP_NAV: ShopNavItem[] = [
   { slug: "overview", label: "Overview" },
+  { slug: "topics", label: "Topics" },
   { slug: "aspects", label: "Aspects" },
 ];
 
