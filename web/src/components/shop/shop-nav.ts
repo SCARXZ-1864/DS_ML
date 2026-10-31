@@ -7,6 +7,7 @@ export const SHOP_NAV: ShopNavItem[] = [
   { slug: "topics", label: "Topics" },
   { slug: "aspects", label: "Aspects" },
   { slug: "reviews", label: "Reviews" },
+  { slug: "ask", label: "Ask" },
 ];
 
 export function visibleNav(isDemo: boolean): ShopNavItem[] {

@@ -155,3 +155,15 @@ export function rangeHeadline(range: MonthRange, summary: RangeSummary, worstAsp
   }
   return { parts };
 }
+
+/** Starter questions for the Ask page, written from the shop's own aspects. */
+export function suggestedQuestions(aspects: Aspect[]): string[] {
+  if (aspects.length === 0) return [];
+  const worst = [...aspects].sort((a, b) => b.negPct - a.negPct)[0];
+  const best = [...aspects].sort((a, b) => b.posPct - a.posPct)[0];
+  return [
+    `Why do customers complain about ${worst.name.toLowerCase()}?`,
+    "What do customers love most?",
+    `How do people feel about the ${best.name.toLowerCase()}?`,
+  ];
+}

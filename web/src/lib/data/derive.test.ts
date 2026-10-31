@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aspectRows, fullRange, lastMonths, netScore, normalizeRange, rangeHeadline, sliceMonths,
+  aspectRows, fullRange, lastMonths, netScore, normalizeRange, rangeHeadline, sliceMonths, suggestedQuestions,
   summarize, toKpis, topComplaints,
 } from "./derive";
 import type { Aspect, MonthPoint, Review } from "./schemas";
@@ -106,5 +106,20 @@ describe("aspects and complaints", () => {
   it("says plainly when a range has no reviews", () => {
     const h = rangeHeadline({ from: "2026-02", to: "2026-02" }, summarize([series[1]]), null);
     expect(h.parts).toEqual([{ text: "No reviews between Feb 2026 and Feb 2026." }]);
+  });
+});
+
+describe("suggestedQuestions", () => {
+  it("builds questions from the shop's own aspects", () => {
+    const aspects = [
+      { ...aspect("wait", "Wait time", []), posPct: 20, negPct: 60 },
+      { ...aspect("food", "Food", []), posPct: 85, negPct: 5 },
+    ];
+    expect(suggestedQuestions(aspects)).toEqual([
+      "Why do customers complain about wait time?",
+      "What do customers love most?",
+      "How do people feel about the food?",
+    ]);
+    expect(suggestedQuestions([])).toEqual([]);
   });
 });
