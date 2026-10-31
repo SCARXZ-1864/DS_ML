@@ -1,7 +1,7 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
 import type {
-  AlertEvent, AlertRule, Aspect, ChatChunk, GoogleLocation, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Source,
+  AlertEvent, AlertRule, Aspect, ChatChunk, GoogleLocation, NewShopInput, Overview, Prediction, Review, Report, ReviewPage, ReviewQuery, ShareInput, ShareLink, Shop, Source,
   Topic, Upload, UploadRequest, User,
 } from "./schemas";
 
@@ -44,6 +44,14 @@ export interface DataSource {
   deleteAlertRule(shopId: string, ruleId: string): Promise<void>;
   listAlertEvents(shopId: string): Promise<AlertEvent[]>;
   markAlertsRead(shopId: string): Promise<void>;
+
+  // Share links: read-only reports anyone with the token can open.
+  listShareLinks(shopId: string): Promise<ShareLink[]>;
+  createShareLink(shopId: string, input: ShareInput): Promise<ShareLink>;
+  /** Null when the token isn't one of this shop's links. */
+  revokeShareLink(shopId: string, token: string): Promise<ShareLink | null>;
+  /** Counts a view. Null for unknown and revoked tokens alike, so a link's history isn't revealed. */
+  getReport(token: string): Promise<Report | null>;
 }
 
 // The one line later parts change: swap the mock for the real API-backed source.

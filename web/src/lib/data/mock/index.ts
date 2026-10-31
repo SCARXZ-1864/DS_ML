@@ -4,6 +4,7 @@ import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from ".
 import { composeAnswer, streamChunks } from "./ask";
 import { predictText } from "./predict";
 import { queryReviews } from "./query";
+import { createShareLink, getReport, listShareLinks, revokeShareLink } from "./share";
 import { connectGoogleAt, disconnectSourceAt, listGoogleLocations, listSourcesAt, syncSourceAt } from "./sources";
 import { createShop, EMPTY_PAGE, findShop, getStore, listShopsFor } from "./store";
 import { getUploadAt, listUploadsAt, startUploadAt } from "./uploads";
@@ -135,5 +136,21 @@ export const mockDataSource: DataSource = {
 
   async markAlertsRead(shopId) {
     markAlertsRead(shopId);
+  },
+
+  async listShareLinks(shopId) {
+    return listShareLinks(shopId);
+  },
+
+  async createShareLink(shopId, input) {
+    return createShareLink(shopId, input);
+  },
+
+  async revokeShareLink(shopId, token) {
+    return revokeShareLink(shopId, token);
+  },
+
+  async getReport(token) {
+    return getReport(token);
   },
 };
