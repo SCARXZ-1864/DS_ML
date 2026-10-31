@@ -92,6 +92,58 @@ export const ReviewSchema = z
     message: "aspect mention span must fall inside the text",
   });
 
+export const TopicSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  keywords: z.array(z.string().min(1)).min(1),
+  size: count,
+  negShare: z.number().min(0).max(1),
+  monthly: z.array(MonthPointSchema),
+  representativeReviewIds: z.array(z.string()),
+});
+
+export const ReviewSortSchema = z.enum(["newest", "oldest", "lowest", "highest"]);
+
+// Query parameters arrive as strings, so numbers are coerced. Callers drop empty values first.
+export const ReviewQuerySchema = z.object({
+  sentiment: ToneSchema.optional(),
+  stars: z.coerce.number().int().min(1).max(5).optional(),
+  aspectId: z.string().min(1).max(64).optional(),
+  search: z.string().trim().max(200).optional(),
+  sort: ReviewSortSchema.default("newest"),
+  cursor: z.string().regex(/^\d+$/, "cursor must be a number").optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export const ReviewPageSchema = z.object({
+  items: z.array(ReviewSchema),
+  nextCursor: z.string().nullable(),
+  total: count,
+});
+
+export const ChatChunkSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text"), text: z.string() }),
+  z.object({ type: z.literal("citation"), reviewId: z.string().min(1) }),
+  z.object({ type: z.literal("done") }),
+  z.object({ type: z.literal("error"), message: z.string().min(1) }),
+]);
+
+export const PredictionSchema = z.object({
+  sentiment: ToneSchema,
+  score: z.number().min(-1).max(1),
+  confidence: z.number().min(0).max(1),
+  tokens: z.array(z.object({ text: z.string(), tone: ToneSchema.optional(), aspectId: z.string().optional() })),
+  aspects: z.array(z.object({ id: z.string().min(1), name: z.string().min(1), sentiment: ToneSchema })),
+});
+
+export const AskRequestSchema = z.object({
+  question: z.string().trim().min(1, "Ask a question first").max(500, "Keep questions under 500 characters"),
+});
+
+export const PredictRequestSchema = z.object({
+  text: z.string().trim().min(1, "Type a review first").max(2000, "Reviews are limited to 2,000 characters"),
+});
+
 export type ShopType = z.infer<typeof ShopTypeSchema>;
 export type Tone = z.infer<typeof ToneSchema>;
 export type Shop = z.infer<typeof ShopSchema>;
@@ -101,3 +153,9 @@ export type Kpis = z.infer<typeof KpisSchema>;
 export type Overview = z.infer<typeof OverviewSchema>;
 export type Aspect = z.infer<typeof AspectSchema>;
 export type Review = z.infer<typeof ReviewSchema>;
+export type Topic = z.infer<typeof TopicSchema>;
+export type ReviewSort = z.infer<typeof ReviewSortSchema>;
+export type ReviewQuery = z.infer<typeof ReviewQuerySchema>;
+export type ReviewPage = z.infer<typeof ReviewPageSchema>;
+export type ChatChunk = z.infer<typeof ChatChunkSchema>;
+export type Prediction = z.infer<typeof PredictionSchema>;
