@@ -178,3 +178,21 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** none
 - **Verified by:** headless walkthrough script, with all assertions true and screenshots reviewed
 - **Attempts:** 2 screenshot attempts, then switched approach
+
+### 2026-10-31 — Upload POST returned 500 in the running app while its tests passed
+- **Milestone:** Part 1 checkpoint 3, Task 8 (browser check of the upload wizard)
+- **Error:** `POST /api/shops/spice-koramangala/uploads 500` with `TypeError: {imported module ./src/lib/data/index.ts}.data.startUpload is not a function`.
+- **Root cause:** the dev server had been running since before `startUpload` was added. Its hot reload didn't swap in the edited mock data source, so it kept the old object without the method. The code on disk was correct, and the route tests (which load it fresh) passed.
+- **Fix:** restarted `pnpm dev`. Stopping the background task left the `next … start-server.js` child on port 3000 again (see the earlier incident), so that process was found with `Get-NetTCPConnection -LocalPort 3000` and stopped first.
+- **Files changed:** none
+- **Verified by:** the headless walkthrough uploaded a 3-row CSV through to "What changed", and `fail.csv` showed the failure state, with 0 console errors
+- **Attempts:** 1
+
+### 2026-10-31 — "Next.js encountered the unstable value `Date.now()` while prerendering" on Uploads
+- **Milestone:** Part 1 checkpoint 3, Task 8
+- **Error:** `Route "/shops/[shopId]/uploads": Next.js encountered the unstable value Date.now() while prerendering.`
+- **Root cause:** upload progress is worked out from the current time, and with Cache Components Next tries to prerender as much of a page as it can. Reading the clock without first marking the page as per-request makes the output depend on when it was built.
+- **Fix:** the page calls `await connection()` before loading uploads, which tells Next this part renders at request time.
+- **Files changed:** `web/src/app/(app)/shops/[shopId]/uploads/page.tsx`
+- **Verified by:** the error no longer appears in the dev server log during the walkthrough
+- **Attempts:** 1
