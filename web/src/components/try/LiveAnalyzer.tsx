@@ -59,13 +59,24 @@ export function LiveAnalyzer({ shopId, examples }: Props) {
 
   const hasText = text.trim().length > 0;
 
+  // Reset in the event, not in the effect: clearing the box drops any leftover progress,
+  // error or result from the earlier text (the effect cleanup aborts the request).
+  const changeText = (next: string) => {
+    setText(next);
+    if (!next.trim()) {
+      setStatus("idle");
+      setPrediction(null);
+      setWaking(false);
+    }
+  };
+
   return (
     <div className="mt-5 max-w-3xl">
       {examples.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Examples">
           <span className="label">Examples</span>
           {examples.map((ex) => (
-            <button key={ex} type="button" onClick={() => setText(ex)} className="border border-line bg-panel px-3 py-1 text-left text-sm hover:border-accent">
+            <button key={ex} type="button" onClick={() => changeText(ex)} className="border border-line bg-panel px-3 py-1 text-left text-sm hover:border-accent">
               {ex}
             </button>
           ))}
@@ -77,7 +88,7 @@ export function LiveAnalyzer({ shopId, examples }: Props) {
         placeholder="Type or paste a customer review…"
         maxLength={MAX}
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => changeText(e.target.value)}
         className="mt-3 h-28 w-full resize-y border border-line bg-panel-2 p-3 text-sm placeholder:text-muted focus:border-accent focus:outline-none"
       />
       <p className="m-0 text-right font-mono text-[11px] text-muted">{text.length.toLocaleString("en-US")} / 2,000</p>

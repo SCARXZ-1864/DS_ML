@@ -85,6 +85,22 @@ describe("ReviewExplorer", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
   });
 
+  it("drops an in-flight Load more when the filters change", async () => {
+    vi.stubGlobal("fetch", vi.fn((url: string, init?: RequestInit) => {
+      const isLoadMore = url.includes("cursor=");
+      return new Promise<Response>((resolve, reject) => {
+        const t = setTimeout(() => resolve(Response.json(page([review(isLoadMore ? "old" : "neg", isLoadMore ? "Old page item" : "Neg item", "negative")]))), isLoadMore ? 150 : 10);
+        init?.signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); });
+      });
+    }));
+    renderExplorer();
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    fireEvent.click(screen.getByRole("button", { name: "Negative" }));
+    await waitFor(() => expect(screen.getByText("Neg item")).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 250));
+    expect(screen.queryByText("Old page item")).toBeNull();
+  });
+
   it("searches after a short pause in typing", async () => {
     const fetchMock = vi.fn(async () => Response.json(page([review("7", "Stale bread")])));
     vi.stubGlobal("fetch", fetchMock);

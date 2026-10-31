@@ -58,9 +58,10 @@ export function TopicsView({ shop, topics, reviews }: Props) {
               <p className="label">{fmtInt(selected.size)} reviews</p>
               <h2 id="topic-title" className="mt-1 break-words font-serif text-2xl">{selected.label}</h2>
               <p className="mt-1 font-mono text-sm">
-                <span className="text-neg">{Math.round(selected.negShare * 100)}% negative</span>
-                {" · "}
-                <span className="text-pos">{100 - Math.round(selected.negShare * 100)}% positive</span>
+                {/* negShare ignores neutral mentions, so say exactly that instead of a positive % that
+                    would contradict the Aspects page (which counts neutral mentions too). */}
+                <span className="text-neg">{Math.round(selected.negShare * 100)}% of opinions are negative</span>
+                <span className="text-muted"> (neutral mentions not counted)</span>
               </p>
               <ul className="mt-3 flex list-none flex-wrap gap-1.5 p-0" aria-label="Keywords">
                 {selected.keywords.map((k) => (

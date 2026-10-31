@@ -22,7 +22,7 @@ export function TopicBubbles({ topics, visibleIds, selectedId, onSelect }: Props
         const t = byId.get(b.id)!;
         const visible = visibleIds.has(t.id);
         const selected = t.id === selectedId;
-        const label = `${t.label}: ${fmtInt(t.size)} reviews, ${Math.round(t.negShare * 100)}% negative`;
+        const label = `${t.label}: ${fmtInt(t.size)} reviews, ${Math.round(t.negShare * 100)}% of opinions negative`;
         return (
           <g
             key={t.id}
@@ -39,11 +39,12 @@ export function TopicBubbles({ topics, visibleIds, selectedId, onSelect }: Props
                 onSelect(t.id);
               }
             }}
-            className={`cursor-pointer outline-none transition-opacity ${visible ? "opacity-100" : "pointer-events-none opacity-20"}`}
+            className={`group cursor-pointer outline-none transition-opacity ${visible ? "opacity-100" : "pointer-events-none opacity-20"}`}
           >
             <circle
               r={b.r}
-              className={`animate-pop stroke-bg ${selected ? "stroke-ink" : ""}`}
+              // outline-none on the group needs a visible replacement: an accent ring on keyboard focus.
+              className={`animate-pop stroke-bg group-focus-visible:stroke-accent group-focus-visible:[stroke-width:4] ${selected ? "stroke-ink" : ""}`}
               strokeWidth={selected ? 3 : 2}
               style={{ fill: `color-mix(in srgb, var(--color-neg) ${Math.round(t.negShare * 100)}%, var(--color-pos))`, animationDelay: `${i * 40}ms` }}
             />

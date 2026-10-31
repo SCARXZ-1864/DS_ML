@@ -43,6 +43,13 @@ export function ReviewExplorer({ shopId, aspects, initial }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [attempt, setAttempt] = useState(0);
   const isFirstRun = useRef(true);
+  // One request at a time: starting a new one (filters or Load more) cancels whatever is in flight.
+  const inflight = useRef<AbortController | null>(null);
+  const startRequest = () => {
+    inflight.current?.abort();
+    inflight.current = new AbortController();
+    return inflight.current;
+  };
   const aspectNames = useMemo(() => Object.fromEntries(aspects.map((a) => [a.id, a.name])), [aspects]);
 
   // Wait for a pause in typing before searching.
@@ -58,7 +65,7 @@ export function ReviewExplorer({ shopId, aspects, initial }: Props) {
       isFirstRun.current = false; // the server already rendered page one for the default filters
       return;
     }
-    const controller = new AbortController();
+    const controller = startRequest();
     setStatus("loading");
     fetchReviews(shopId, filters, null, controller.signal)
       .then((next) => {
@@ -73,15 +80,19 @@ export function ReviewExplorer({ shopId, aspects, initial }: Props) {
 
   const loadMore = useCallback(async () => {
     if (!page.nextCursor) return;
+    const controller = startRequest();
     setStatus("loading");
     try {
-      const next = await fetchReviews(shopId, filters, page.nextCursor, new AbortController().signal);
+      const next = await fetchReviews(shopId, filters, page.nextCursor, controller.signal);
       setPage((prev) => ({ ...next, items: [...prev.items, ...next.items] }));
       setStatus("idle");
-    } catch {
-      setStatus("error");
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") setStatus("error");
     }
   }, [shopId, filters, page.nextCursor]);
+
+  // Cancel any request still running when the explorer unmounts.
+  useEffect(() => () => inflight.current?.abort(), []);
 
   const clearFilters = () => {
     setSearchText("");

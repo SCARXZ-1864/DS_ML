@@ -54,6 +54,14 @@ describe("ChatPanel", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
 
+  it("treats a stream that ends without done as interrupted", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ndjson([{ type: "text", text: "Half an answer" }])));
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Why do customers complain?" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("interrupted"));
+    expect((screen.getByRole("button", { name: "Why do customers complain?" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("keeps the send button disabled for a blank question", () => {
     renderPanel();
     expect((screen.getByRole("button", { name: "Ask" }) as HTMLButtonElement).disabled).toBe(true);

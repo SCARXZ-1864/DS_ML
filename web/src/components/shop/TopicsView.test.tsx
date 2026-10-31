@@ -24,6 +24,19 @@ describe("TopicsView", () => {
     target.keywords.forEach((k) => expect(screen.getAllByText(k).length).toBeGreaterThan(0));
   });
 
+  it("describes the complaint share without contradicting the aspects page", () => {
+    renderView();
+    const panel = screen.getByRole("heading", { level: 2 }).closest("section")!;
+    expect(panel.textContent).toMatch(/of opinions are negative/);
+    expect(panel.textContent).not.toMatch(/% positive/);
+  });
+
+  it("shows a visible focus ring on bubbles for keyboard users", () => {
+    renderView();
+    const bubble = screen.getAllByRole("button", { name: /reviews,/ })[0];
+    expect(bubble.querySelector("circle")!.getAttribute("class")).toContain("group-focus-visible:stroke-accent");
+  });
+
   it("filters to complaint topics", () => {
     renderView();
     fireEvent.click(screen.getByRole("button", { name: "Mostly complaints" }));

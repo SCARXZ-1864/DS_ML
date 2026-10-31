@@ -42,6 +42,19 @@ describe("LiveAnalyzer", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("stops showing progress when the box is cleared mid-request", async () => {
+    vi.stubGlobal("fetch", vi.fn((_u: string, init?: RequestInit) => new Promise<Response>((resolve, reject) => {
+      const t = setTimeout(() => resolve(Response.json(prediction)), 1000);
+      init?.signal?.addEventListener("abort", () => { clearTimeout(t); reject(new DOMException("Aborted", "AbortError")); });
+    })));
+    render(<LiveAnalyzer shopId="s1" examples={[]} />);
+    const box = screen.getByRole("textbox", { name: "Review text" });
+    fireEvent.change(box, { target: { value: "Food terrible" } });
+    await waitFor(() => expect(screen.getByText("Analysing…")).toBeTruthy());
+    fireEvent.change(box, { target: { value: "" } });
+    await waitFor(() => expect(screen.queryByText("Analysing…")).toBeNull());
+  });
+
   it("shows an error with a retry", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(Response.json({ error: { code: "INTERNAL_ERROR", message: "boom", request_id: "r" } }, { status: 500 }))

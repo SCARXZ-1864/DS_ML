@@ -37,6 +37,12 @@ describe("composeAnswer", () => {
     expect(cites(chunks)).toEqual([]);
   });
 
+  it("declines questions that only contain parts of keywords", () => {
+    for (const q of ["Why is the sky blue?", "Is it still open?", "Is that likely?", "Was the seating comfortable?".replace("seating ", "")]) {
+      expect(text(ask(q))).toMatch(/^I couldn't find reviews/);
+    }
+  });
+
   it("only produces chunks that follow the contract", () => {
     ask("Why do customers complain?").forEach((c) => ChatChunkSchema.parse(c));
   });

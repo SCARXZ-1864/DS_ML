@@ -62,6 +62,8 @@ export function ChatPanel({ shopId, suggestions, reviews, aspectNames }: Props) 
           update((t) => ({ ...t, status: "error", error: chunk.message }));
         }
       }
+      // A stream that closes without "done" or "error" was cut off; never leave the turn spinning.
+      update((t) => (t.status === "streaming" ? { ...t, status: "error", error: "The answer was interrupted. Please try again." } : t));
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       update((t) => ({ ...t, status: "error", error: (err as Error).message }));

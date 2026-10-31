@@ -4,8 +4,12 @@ import { ASPECT_KEYWORDS } from "./keywords";
 // A rule-based stand-in for the RAG chat (Part 6). It follows the same contract:
 // answer only from the shop's reviews, cite them, and decline when they can't help.
 
-const PRAISE = /\b(love|like|best|praise|good|great|happy|enjoy)/;
-const COMPLAINT = /\b(complain|complaint|problem|bad|worst|issue|wrong|hate|why|return|unhappy)/;
+// Whole words only: "likely" is not "like", and "still" does not contain the keyword "till".
+const PRAISE = /\b(love|loved|like|best|praise|good|great|happy|enjoy)\b/;
+const COMPLAINT = /\b(complain|complains|complaint|complaints|problem|problems|bad|worst|issue|issues|wrong|hate|return|returns|unhappy)\b/;
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasWord = (text: string, word: string) => new RegExp(`\\b${escape(word)}\\b`).test(text);
 
 /** Splits text into word chunks so the client can render it as it streams. */
 function words(text: string): ChatChunk[] {
@@ -15,7 +19,7 @@ function words(text: string): ChatChunk[] {
 export function composeAnswer(question: string, aspects: Aspect[], reviews: Review[]): ChatChunk[] {
   const q = question.toLowerCase();
   const named = aspects.filter(
-    (a) => q.includes(a.name.toLowerCase()) || (ASPECT_KEYWORDS[a.id] ?? []).some((k) => q.includes(k)),
+    (a) => hasWord(q, a.name.toLowerCase()) || (ASPECT_KEYWORDS[a.id] ?? []).some((k) => hasWord(q, k)),
   );
   const wantsPraise = PRAISE.test(q);
   const wantsComplaints = COMPLAINT.test(q);
