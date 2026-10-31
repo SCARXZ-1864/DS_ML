@@ -1,12 +1,20 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
-import type { Aspect, ChatChunk, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Topic } from "./schemas";
+import type {
+  Aspect, ChatChunk, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Topic, User,
+} from "./schemas";
 
 // The single entry point every page uses for data. Server-side only: client
 // components receive plain data as props and must never import this module.
 export interface DataSource {
-  listShops(): Promise<Shop[]>;
+  /** Demo shops plus the shops the given user owns (demo shops only when null). */
+  listShops(userId: string | null): Promise<Shop[]>;
   getShop(id: string): Promise<Shop | null>;
+  /** The owning user's id, or null for demo shops. Access decisions use this (see lib/auth/access.ts). */
+  getShopOwner(id: string): Promise<string | null>;
+  createShop(userId: string, input: NewShopInput): Promise<Shop>;
+  getUser(id: string): Promise<User | null>;
+  saveUser(user: User): Promise<User>;
   getOverview(id: string, range?: Partial<MonthRange>): Promise<Overview | null>;
   getAspects(id: string, range?: Partial<MonthRange>): Promise<Aspect[] | null>;
   getReviewsByIds(id: string, ids: string[]): Promise<Review[]>;

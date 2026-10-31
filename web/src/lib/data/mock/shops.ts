@@ -152,3 +152,34 @@ export const SHOP_DEFS: ShopDef[] = [
     ],
   },
 ];
+
+// Template for shop types with no demo of their own (clothing, salon, other). Its aspects
+// fit almost any shop, so a new owner shop never shows restaurant or appliance wording.
+export const GENERIC_DEF: ShopDef = {
+  id: "generic", name: "Generic shop", type: "other", isDemo: false,
+  from: "2024-11", months: 24, baseVolume: 70, growth: 0.3, posBase: 0.66, negBase: 0.2, negTrend: 0.03,
+  hasStars: true, unreadAlerts: 0,
+  headline: { parts: [{ text: "Customers rate the quality highly, but " }, { text: "wait time", tone: "negative" }, { text: " draws the most complaints." }] },
+  aspects: [
+    { id: "quality", name: "Quality", group: "product", share: 0.45, neg: 0.12, pos: 0.74, drift: 0 },
+    { id: "service", name: "Service", group: "service", share: 0.35, neg: 0.18, pos: 0.64, drift: 0.02 },
+    { id: "staff", name: "Staff", group: "service", share: 0.25, neg: 0.14, pos: 0.7, drift: 0 },
+    { id: "price", name: "Price", group: "price", share: 0.22, neg: 0.26, pos: 0.44, drift: 0.02 },
+    { id: "wait-time", name: "Wait time", group: "service", share: 0.18, neg: 0.38, pos: 0.24, drift: 0.08 },
+    { id: "cleanliness", name: "Cleanliness", group: "place", share: 0.12, neg: 0.1, pos: 0.62, drift: 0 },
+  ],
+  reviews: [
+    { id: "gn-r1", date: "2026-10-08", stars: 2, sentiment: "negative", text: "Good quality, but I waited 30 minutes even with an appointment.", mentions: [["quality", "Good quality", "positive"], ["wait-time", "waited 30 minutes", "negative"]] },
+    { id: "gn-r2", date: "2026-09-19", stars: 5, sentiment: "positive", text: "The staff were friendly and the service was quick.", mentions: [["staff", "staff were friendly", "positive"], ["service", "service was quick", "positive"]] },
+    { id: "gn-r3", date: "2026-09-02", stars: 2, sentiment: "negative", text: "Felt overpriced for what I got.", mentions: [["price", "overpriced", "negative"]] },
+    { id: "gn-r4", date: "2026-08-11", stars: 4, sentiment: "positive", text: "Spotless place and great quality overall.", mentions: [["cleanliness", "Spotless place", "positive"], ["quality", "great quality", "positive"]] },
+    { id: "gn-r5", date: "2026-07-23", stars: 1, sentiment: "negative", text: "Rude staff and a long wait at the counter.", mentions: [["staff", "Rude staff", "negative"], ["wait-time", "long wait", "negative"]] },
+    { id: "gn-r6", date: "2026-06-30", stars: 3, sentiment: "neutral", text: "Fair price, service was fine.", mentions: [["price", "Fair price", "positive"], ["service", "service was fine", "neutral"]] },
+  ],
+};
+
+/** The mock dataset a new owner shop gets on its first import. */
+export function templateFor(type: ShopType): ShopDef {
+  const byType: Partial<Record<ShopType, string>> = { restaurant: "saffron-table", grocery: "freshcart", electronics: "volthome" };
+  return SHOP_DEFS.find((d) => d.id === byType[type]) ?? GENERIC_DEF;
+}

@@ -23,7 +23,7 @@ export default function ShopLayout({ children, params }: LayoutProps<"/shops/[sh
 
 async function ShopSidebar({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const [shops, current] = await Promise.all([data.listShops(), data.getShop(shopId)]);
+  const [shops, current] = await Promise.all([data.listShops(null), data.getShop(shopId)]);
   return <Sidebar shops={shops} current={current} />;
 }
 

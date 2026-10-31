@@ -14,7 +14,7 @@ describe("mock data", () => {
   });
 
   it("has 3 demo shops and 2 owner shops across several shop types", async () => {
-    const shops = await ds.listShops();
+    const shops = await ds.listShops("u-demo-owner");
     expect(shops.filter((s) => s.isDemo)).toHaveLength(3);
     expect(shops.filter((s) => !s.isDemo)).toHaveLength(2);
     expect(new Set(shops.map((s) => s.type))).toEqual(new Set(["restaurant", "grocery", "electronics"]));

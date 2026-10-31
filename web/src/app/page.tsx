@@ -4,7 +4,7 @@ import { shopTypeLabel } from "@/lib/format";
 
 // Temporary start page; the real landing page arrives in checkpoint 4.
 export default async function Home() {
-  const shops = await data.listShops();
+  const shops = await data.listShops(null);
   return (
     <main className="mx-auto max-w-3xl px-6 py-20">
       <p className="label text-accent">Review Intelligence · preview build</p>
