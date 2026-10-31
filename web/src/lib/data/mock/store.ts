@@ -1,8 +1,9 @@
 import type {
-  AlertEvent, AlertRule, NewShopInput, Review, ReviewPage, ShareLink, Shop, Source, User,
+  AlertEvent, AlertRule, NewShopInput, Review, ReviewPage, ShareLink, Shop, User,
 } from "../schemas";
 import { buildDb, type ShopEntry } from "./build";
 import { SHOP_DEFS, templateFor } from "./shops";
+import type { StoredSource } from "./sources";
 import type { StoredUpload } from "./uploads";
 
 // All mutable mock state in one place. It lives on globalThis so hot reloads in `next dev`
@@ -16,7 +17,7 @@ export type Store = {
   owners: Map<string, string>; // shopId → userId
   users: Map<string, User>;
   uploads: Map<string, StoredUpload[]>; // newest first
-  sources: Map<string, Source[]>;
+  sources: Map<string, StoredSource[]>;
   rules: Map<string, AlertRule[]>;
   events: Map<string, AlertEvent[]>;
   links: Map<string, ShareLink>; // token → link

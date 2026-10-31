@@ -3,6 +3,7 @@ import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from ".
 import { composeAnswer, streamChunks } from "./ask";
 import { predictText } from "./predict";
 import { queryReviews } from "./query";
+import { connectGoogleAt, disconnectSourceAt, listGoogleLocations, listSourcesAt, syncSourceAt } from "./sources";
 import { createShop, EMPTY_PAGE, findShop, getStore, listShopsFor } from "./store";
 import { getUploadAt, listUploadsAt, startUploadAt } from "./uploads";
 
@@ -93,5 +94,25 @@ export const mockDataSource: DataSource = {
 
   async getUpload(shopId, uploadId) {
     return getUploadAt(shopId, uploadId, Date.now());
+  },
+
+  async listSources(shopId) {
+    return listSourcesAt(shopId, Date.now());
+  },
+
+  async listGoogleLocations(shopId) {
+    return listGoogleLocations(shopId);
+  },
+
+  async connectGoogle(shopId, input) {
+    return connectGoogleAt(shopId, input, Date.now());
+  },
+
+  async syncSource(shopId, sourceId) {
+    return syncSourceAt(shopId, sourceId, Date.now());
+  },
+
+  async disconnectSource(shopId, sourceId) {
+    return disconnectSourceAt(shopId, sourceId);
   },
 };

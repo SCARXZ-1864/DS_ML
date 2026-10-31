@@ -1,8 +1,8 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
 import type {
-  Aspect, ChatChunk, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Topic, Upload,
-  UploadRequest, User,
+  Aspect, ChatChunk, GoogleLocation, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Source,
+  Topic, Upload, UploadRequest, User,
 } from "./schemas";
 
 // The single entry point every page uses for data. Server-side only: client
@@ -28,6 +28,14 @@ export interface DataSource {
   listUploads(shopId: string): Promise<Upload[]>;
   startUpload(shopId: string, req: UploadRequest): Promise<Upload>;
   getUpload(shopId: string, uploadId: string): Promise<Upload | null>;
+
+  // Review sources. A Google sync runs in the background; the source shows "syncing" meanwhile.
+  listSources(shopId: string): Promise<Source[]>;
+  listGoogleLocations(shopId: string): Promise<GoogleLocation[]>;
+  /** Null when the location isn't one of the account's. */
+  connectGoogle(shopId: string, input: { locationId: string; accountLabel: string }): Promise<Source | null>;
+  syncSource(shopId: string, sourceId: string): Promise<Source | null>;
+  disconnectSource(shopId: string, sourceId: string): Promise<Source | null>;
 }
 
 // The one line later parts change: swap the mock for the real API-backed source.
