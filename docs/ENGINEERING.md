@@ -56,6 +56,7 @@ Every API error, in both services, has this shape:
 | `code` | HTTP | Retryable? | Meaning |
 |--------|------|------------|---------|
 | `VALIDATION_ERROR` | 400/422 | no | Bad input. The message says which field and why |
+| `NOT_FOUND` | 404 | no | The shop (or other resource) doesn't exist or isn't visible to the caller |
 | `UNAUTHORIZED` | 401 | no | Missing or invalid API key (inference service) |
 | `RATE_LIMITED` | 429 | after `retry_after` | Our own per-IP or daily cap |
 | `COLD_START` | 503 | **yes** | The inference container is cold-starting (timeout, 502/503, or a non-JSON body) |
