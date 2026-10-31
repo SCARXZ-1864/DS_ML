@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/shop/PageHeader";
 import { PageSkeleton } from "@/components/shop/PageSkeleton";
 import { data } from "@/lib/data";
 import { suggestedQuestions } from "@/lib/data/derive";
-import { requireShop } from "@/lib/data/load";
+import { loadShopForViewer } from "@/lib/data/load";
 
 export default function AskPage({ params }: PageProps<"/shops/[shopId]/ask">) {
   return (
@@ -16,7 +16,7 @@ export default function AskPage({ params }: PageProps<"/shops/[shopId]/ask">) {
 
 async function AskLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const shop = await requireShop(shopId);
+  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/ask`);
   const aspects = (await data.getAspects(shopId)) ?? [];
   const reviews = await data.getReviewsByIds(shopId, aspects.flatMap((a) => a.exampleReviewIds));
   return (

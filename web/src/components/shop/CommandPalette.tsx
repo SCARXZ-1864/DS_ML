@@ -7,14 +7,14 @@ import type { Shop } from "@/lib/data/schemas";
 import { shopTypeLabel } from "@/lib/format";
 import { visibleNav } from "./shop-nav";
 
-type Props = { shops: Shop[]; current: Shop | null };
+type Props = { shops: Shop[]; current: Shop | null; canManage: boolean };
 
 const ITEM =
   "flex cursor-pointer items-center justify-between gap-3 px-3 py-2 text-sm data-[selected=true]:bg-panel data-[selected=true]:shadow-[inset_2px_0_0_var(--color-accent)]";
 const GROUP = "[&_[cmdk-group-heading]]:label [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5";
 
 /** Ctrl+K (⌘K on Mac) quick search for pages and shops, built on cmdk (the library behind shadcn's Command). */
-export function CommandPalette({ shops, current }: Props) {
+export function CommandPalette({ shops, current, canManage }: Props) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -59,7 +59,7 @@ export function CommandPalette({ shops, current }: Props) {
           <Command.Empty className="px-3 py-6 text-center text-sm text-muted">No matches.</Command.Empty>
           {current && (
             <Command.Group heading={current.name} className={GROUP}>
-              {visibleNav(current.isDemo).map((item) => (
+              {visibleNav(canManage).map((item) => (
                 <Command.Item key={item.slug} value={`${item.label} page`} onSelect={() => go(`/shops/${current.id}/${item.slug}`)} className={ITEM}>
                   {item.label}
                   <span className="text-xs text-muted">page</span>

@@ -19,14 +19,31 @@ const fresh: Shop = {
 
 describe("Sidebar", () => {
   it("marks the current page in the shop navigation", () => {
-    render(<Sidebar shops={[fresh]} current={fresh} />);
+    render(<Sidebar shops={[fresh]} current={fresh} canManage={false} user={null} />);
     const link = screen.getByRole("link", { name: "Overview" });
     expect(link.getAttribute("href")).toBe("/shops/fresh/overview");
     expect(link.getAttribute("aria-current")).toBe("page");
   });
 
   it("shows no shop navigation when the shop is unknown", () => {
-    render(<Sidebar shops={[fresh]} current={null} />);
+    render(<Sidebar shops={[fresh]} current={null} canManage={false} user={null} />);
     expect(screen.queryByRole("navigation", { name: "Shop pages" })).toBeNull();
+  });
+
+  it("hides the manage pages on a shop the viewer can't manage", () => {
+    render(<Sidebar shops={[fresh]} current={fresh} canManage={false} user={null} />);
+    expect(screen.queryByRole("link", { name: /Uploads/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "Log in" }).getAttribute("href")).toBe("/login");
+  });
+
+  it("shows the four manage pages and account links to the owner", () => {
+    const own = { ...fresh, id: "own", isDemo: false, unreadAlerts: 2 };
+    render(<Sidebar shops={[own]} current={own} canManage user={{ name: "Demo owner" }} />);
+    for (const name of ["Sources", "Uploads", "Share"]) {
+      expect(screen.getByRole("link", { name }).getAttribute("href")).toBe(`/shops/own/${name.toLowerCase()}`);
+    }
+    expect(screen.getByRole("link", { name: /Alerts/ }).textContent).toContain("2");
+    expect(screen.getByRole("link", { name: "My shops" }).getAttribute("href")).toBe("/app");
+    expect(screen.getByRole("button", { name: "Log out" })).toBeTruthy();
   });
 });

@@ -4,7 +4,7 @@ import { PageSkeleton } from "@/components/shop/PageSkeleton";
 import { LiveAnalyzer } from "@/components/try/LiveAnalyzer";
 import { data } from "@/lib/data";
 import { tryExamples } from "@/lib/data/derive";
-import { requireShop } from "@/lib/data/load";
+import { loadShopForViewer } from "@/lib/data/load";
 
 export default function TryPage({ params }: PageProps<"/shops/[shopId]/try">) {
   return (
@@ -16,7 +16,7 @@ export default function TryPage({ params }: PageProps<"/shops/[shopId]/try">) {
 
 async function TryLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const shop = await requireShop(shopId);
+  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/try`);
   const aspects = (await data.getAspects(shopId)) ?? [];
   return (
     <div className="animate-fade-rise">

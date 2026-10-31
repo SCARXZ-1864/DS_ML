@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { AspectsView } from "@/components/shop/AspectsView";
 import { PageSkeleton } from "@/components/shop/PageSkeleton";
 import { data } from "@/lib/data";
-import { requireShop } from "@/lib/data/load";
+import { loadShopForViewer } from "@/lib/data/load";
 
 export default function AspectsPage({ params }: PageProps<"/shops/[shopId]/aspects">) {
   return (
@@ -14,7 +14,7 @@ export default function AspectsPage({ params }: PageProps<"/shops/[shopId]/aspec
 
 async function AspectsLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const shop = await requireShop(shopId);
+  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/aspects`);
   const aspects = (await data.getAspects(shopId)) ?? [];
   const reviews = await data.getReviewsByIds(shopId, aspects.flatMap((a) => a.exampleReviewIds));
   return <AspectsView shop={shop} aspects={aspects} reviews={reviews} />;

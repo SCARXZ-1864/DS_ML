@@ -14,7 +14,7 @@ const shops = [shop("fresh", "FreshCart Grocery", "grocery"), shop("volt", "Volt
 
 describe("CommandPalette", () => {
   it("opens with Ctrl+K and jumps to a page of the current shop", () => {
-    render(<CommandPalette shops={shops} current={shops[0]} />);
+    render(<CommandPalette shops={shops} current={shops[0]} canManage={false} />);
     fireEvent.keyDown(document, { key: "k", ctrlKey: true });
     expect(screen.getByPlaceholderText("Jump to a page or shop…")).toBeTruthy();
     fireEvent.click(screen.getByText("Reviews"));
@@ -22,7 +22,7 @@ describe("CommandPalette", () => {
   });
 
   it("switches shop from the palette", () => {
-    render(<CommandPalette shops={shops} current={shops[0]} />);
+    render(<CommandPalette shops={shops} current={shops[0]} canManage={false} />);
     fireEvent.click(screen.getByRole("button", { name: /Search/ }));
     fireEvent.click(screen.getByText("VoltHome Appliances"));
     expect(push).toHaveBeenCalledWith("/shops/volt/overview");
