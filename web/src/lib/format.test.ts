@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtInt, fmtMonth, fmtPct, fmtSigned, fmtStars, shopTypeLabel } from "./format";
+import { fmtDate, fmtInt, fmtMonth, fmtPct, fmtSigned, fmtStars, shopTypeLabel } from "./format";
 
 describe("formatters", () => {
   it("formats integers with thousands separators", () => expect(fmtInt(8412)).toBe("8,412"));
@@ -22,4 +22,8 @@ describe("formatters", () => {
     expect(fmtSigned(null)).toBe("—");
   });
   it("labels shop types", () => expect(shopTypeLabel("electronics")).toBe("Electronics & appliances"));
+});
+
+describe("fmtDate", () => {
+  it("formats ISO dates for people", () => expect(fmtDate("2026-10-04")).toBe("4 Oct 2026"));
 });

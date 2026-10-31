@@ -26,6 +26,17 @@ export function fmtMonth(key: string): string {
   });
 }
 
+/** "2026-10-04" → "4 Oct 2026" */
+export function fmtDate(iso: string): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /** +12, −12 (a real minus sign, U+2212), 0 */
 export function fmtSigned(n: number | null): string {
   if (n === null) return "—";
