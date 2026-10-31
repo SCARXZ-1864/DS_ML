@@ -167,3 +167,15 @@ export function suggestedQuestions(aspects: Aspect[]): string[] {
     `How do people feel about the ${best.name.toLowerCase()}?`,
   ];
 }
+
+/** Example reviews for the "Try it" page, built from the shop's best and worst aspects. */
+export function tryExamples(aspects: Aspect[]): string[] {
+  if (aspects.length < 2) return ["Great service and fair prices, would recommend."];
+  const best = [...aspects].sort((a, b) => b.posPct - a.posPct)[0].name.toLowerCase();
+  const worst = [...aspects].sort((a, b) => b.negPct - a.negPct)[0].name.toLowerCase();
+  return [
+    `The ${best} was excellent but the ${worst} was terrible.`,
+    `Really disappointed, the ${worst} was slow and the staff were rude.`,
+    `Loved the ${best}, friendly people and great value. Would recommend!`,
+  ];
+}

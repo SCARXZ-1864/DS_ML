@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aspectRows, fullRange, lastMonths, netScore, normalizeRange, rangeHeadline, sliceMonths, suggestedQuestions,
+  aspectRows, fullRange, lastMonths, netScore, normalizeRange, rangeHeadline, sliceMonths, suggestedQuestions, tryExamples,
   summarize, toKpis, topComplaints,
 } from "./derive";
 import type { Aspect, MonthPoint, Review } from "./schemas";
@@ -121,5 +121,22 @@ describe("suggestedQuestions", () => {
       "How do people feel about the food?",
     ]);
     expect(suggestedQuestions([])).toEqual([]);
+  });
+});
+
+describe("tryExamples", () => {
+  it("writes example reviews from the shop's best and worst aspects", () => {
+    const aspects = [
+      { ...aspect("wait", "Wait time", []), posPct: 20, negPct: 60 },
+      { ...aspect("food", "Food", []), posPct: 85, negPct: 5 },
+    ];
+    const [mixed, negative, positive] = tryExamples(aspects);
+    expect(mixed).toBe("The food was excellent but the wait time was terrible.");
+    expect(negative).toContain("wait time");
+    expect(positive).toContain("food");
+  });
+
+  it("falls back to a generic example with too few aspects", () => {
+    expect(tryExamples([])).toHaveLength(1);
   });
 });
