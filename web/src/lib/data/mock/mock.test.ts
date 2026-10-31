@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sliceMonths } from "../derive";
 import {
-  AspectSchema, OverviewSchema, ReviewPageSchema, ReviewQuerySchema, ReviewSchema, ShopSchema, TopicSchema,
+  AspectSchema, OverviewSchema, PredictionSchema, ReviewPageSchema, ReviewQuerySchema, ReviewSchema, ShopSchema, TopicSchema,
+  type ChatChunk,
 } from "../schemas";
 import { buildDb } from "./build";
 import { mockDataSource as ds } from "./index";
@@ -76,5 +77,15 @@ describe("mock data", () => {
     const page = (await ds.getReviews("spice-indiranagar", ReviewQuerySchema.parse({ aspectId: "spice", limit: 50 })))!;
     expect(page.total).toBeGreaterThan(0);
     page.items.forEach((r) => expect(r.date >= "2026-05").toBe(true));
+  });
+
+  it("streams an answer and predicts for known shops only", async () => {
+    const stream = await ds.ask("freshcart", "Why do customers complain?");
+    const chunks: ChatChunk[] = [];
+    for await (const c of stream!) chunks.push(c);
+    expect(chunks.at(-1)).toEqual({ type: "done" });
+    PredictionSchema.parse(await ds.predict("freshcart", "Bread was stale."));
+    expect(await ds.ask("no-such-shop", "hi")).toBeNull();
+    expect(await ds.predict("no-such-shop", "hi")).toBeNull();
   });
 });

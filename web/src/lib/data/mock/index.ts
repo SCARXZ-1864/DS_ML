@@ -1,8 +1,13 @@
 import type { DataSource } from "../index";
 import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from "../derive";
+import { composeAnswer, streamChunks } from "./ask";
 import { buildDb } from "./build";
+import { predictText } from "./predict";
 import { queryReviews } from "./query";
 import { SHOP_DEFS } from "./shops";
+
+// Pause between streamed chunks, so the UI shows the answer arriving word by word.
+const STREAM_DELAY_MS = 30;
 
 // Built once per server process. Seeded, so every run produces identical data.
 const db = buildDb(SHOP_DEFS);
@@ -48,5 +53,15 @@ export const mockDataSource: DataSource = {
   async getReviews(id, query) {
     const entry = db.get(id);
     return entry ? queryReviews(entry.reviews, query) : null;
+  },
+
+  async ask(id, question) {
+    const entry = db.get(id);
+    return entry ? streamChunks(composeAnswer(question, entry.aspects, entry.reviews), STREAM_DELAY_MS) : null;
+  },
+
+  async predict(id, text) {
+    const entry = db.get(id);
+    return entry ? predictText(text, entry.aspects) : null;
   },
 };
