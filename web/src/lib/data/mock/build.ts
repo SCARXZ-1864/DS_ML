@@ -1,9 +1,13 @@
 import { aspectInRange, fullRange, summarize, toKpis } from "../derive";
-import type { Aspect, MonthPoint, Overview, Review, Shop } from "../schemas";
+import type { Aspect, MonthPoint, Overview, Review, Shop, Topic } from "../schemas";
+import { generateReviews } from "./generate";
 import { mulberry32, seedFrom, splitInt } from "./rng";
 import type { ShopDef } from "./shops";
+import { deriveTopics } from "./topics";
 
-export type ShopEntry = { shop: Shop; overview: Overview; aspects: Aspect[]; reviews: Review[] };
+export type ShopEntry = { shop: Shop; overview: Overview; aspects: Aspect[]; reviews: Review[]; topics: Topic[] };
+
+const byNewest = (a: Review, b: Review) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -52,7 +56,7 @@ function buildShop(def: ShopDef): ShopEntry {
     return { month, count, pos, neg, neu, stars: def.hasStars ? starsFrom(pos, neg, neu) : null };
   });
   const all = fullRange(monthly);
-  const reviews = buildReviews(def);
+  const reviews = [...buildReviews(def), ...generateReviews(def, monthly.map((m) => m.month))].sort(byNewest);
 
   const aspects: Aspect[] = def.aspects.map((a) => {
     const ar = mulberry32(seedFrom(`${def.id}:${a.id}`));
@@ -92,7 +96,9 @@ function buildShop(def: ShopDef): ShopEntry {
       .map((a) => ({
         aspectId: a.id,
         negPct: a.negPct,
+        // Prefer a hand-written quote (generated ids end in -gN) over a templated one.
         quoteReviewId:
+          reviews.find((r) => !r.id.includes("-g") && r.aspectMentions.some((m) => m.aspectId === a.id && m.sentiment === "negative"))?.id ??
           reviews.find((r) => r.aspectMentions.some((m) => m.aspectId === a.id && m.sentiment === "negative"))?.id ??
           null,
       })),
@@ -109,7 +115,7 @@ function buildShop(def: ShopDef): ShopEntry {
     ...(def.lastUploadAt ? { lastUploadAt: def.lastUploadAt } : {}),
   };
 
-  return { shop, overview, aspects, reviews };
+  return { shop, overview, aspects, reviews, topics: deriveTopics(aspects, reviews) };
 }
 
 export function buildDb(defs: ShopDef[]): Map<string, ShopEntry> {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sliceMonths } from "../derive";
-import { AspectSchema, OverviewSchema, ReviewSchema, ShopSchema } from "../schemas";
+import {
+  AspectSchema, OverviewSchema, ReviewPageSchema, ReviewQuerySchema, ReviewSchema, ShopSchema, TopicSchema,
+} from "../schemas";
 import { buildDb } from "./build";
 import { mockDataSource as ds } from "./index";
 import { SHOP_DEFS } from "./shops";
@@ -53,5 +55,26 @@ describe("mock data", () => {
     const spice = (await ds.getAspects("spice-indiranagar"))!.find((a) => a.id === "spice")!;
     expect(spice.isNew).toBe(true);
     expect(spice.monthly[0].count).toBe(0);
+  });
+
+  it.each(SHOP_DEFS.map((d) => d.id))("%s has topics and paginated reviews that follow the contract", async (id) => {
+    const topics = (await ds.getTopics(id))!;
+    expect(topics.length).toBeGreaterThan(3);
+    topics.forEach((t) => TopicSchema.parse(t));
+    expect(topics.map((t) => t.size)).toEqual([...topics.map((t) => t.size)].sort((a, b) => b - a));
+    const page = ReviewPageSchema.parse(await ds.getReviews(id, ReviewQuerySchema.parse({})));
+    expect(page.total).toBeGreaterThanOrEqual(40);
+    expect(page.items).toHaveLength(20);
+  });
+
+  it("returns null topics and reviews for an unknown shop", async () => {
+    expect(await ds.getTopics("no-such-shop")).toBeNull();
+    expect(await ds.getReviews("no-such-shop", ReviewQuerySchema.parse({}))).toBeNull();
+  });
+
+  it("only generates reviews for a new aspect in the months it exists", async () => {
+    const page = (await ds.getReviews("spice-indiranagar", ReviewQuerySchema.parse({ aspectId: "spice", limit: 50 })))!;
+    expect(page.total).toBeGreaterThan(0);
+    page.items.forEach((r) => expect(r.date >= "2026-05").toBe(true));
   });
 });

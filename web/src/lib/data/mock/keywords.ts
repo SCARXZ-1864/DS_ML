@@ -1,0 +1,21 @@
+// Words customers use for each aspect (by aspect id). They feed topic keywords,
+// the mock chat's question matching and the mock "Try it" predictor.
+export const ASPECT_KEYWORDS: Record<string, string[]> = {
+  food: ["taste", "dish", "flavour", "portion"],
+  service: ["staff", "waiter", "friendly", "rude"],
+  "wait-time": ["wait", "queue", "minutes", "slow"],
+  ambience: ["music", "decor", "seating", "vibe"],
+  price: ["price", "value", "expensive", "cheap"],
+  cleanliness: ["clean", "table", "hygiene", "sticky"],
+  freshness: ["fresh", "wilted", "stale", "expiry"],
+  stock: ["stock", "available", "missing", "shelf"],
+  delivery: ["delivery", "late", "driver", "arrived"],
+  packaging: ["box", "container", "leaked", "packed"],
+  checkout: ["checkout", "counter", "card", "till"],
+  build: ["sturdy", "quality", "material", "solid"],
+  installation: ["install", "technician", "postponed", "fitting"],
+  warranty: ["warranty", "claim", "repair", "replacement"],
+  energy: ["power", "energy", "bill", "efficient"],
+  noise: ["noise", "loud", "quiet", "hum"],
+  spice: ["spicy", "mild", "heat", "chilli"],
+};

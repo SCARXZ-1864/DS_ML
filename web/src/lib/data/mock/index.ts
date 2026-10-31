@@ -1,6 +1,7 @@
 import type { DataSource } from "../index";
 import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from "../derive";
 import { buildDb } from "./build";
+import { queryReviews } from "./query";
 import { SHOP_DEFS } from "./shops";
 
 // Built once per server process. Seeded, so every run produces identical data.
@@ -38,5 +39,14 @@ export const mockDataSource: DataSource = {
     if (!entry) return [];
     const wanted = new Set(ids);
     return entry.reviews.filter((r) => wanted.has(r.id));
+  },
+
+  async getTopics(id) {
+    return db.get(id)?.topics ?? null;
+  },
+
+  async getReviews(id, query) {
+    const entry = db.get(id);
+    return entry ? queryReviews(entry.reviews, query) : null;
   },
 };

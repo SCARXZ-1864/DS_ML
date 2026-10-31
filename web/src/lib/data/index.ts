@@ -1,6 +1,6 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
-import type { Aspect, Overview, Review, Shop } from "./schemas";
+import type { Aspect, Overview, Review, ReviewPage, ReviewQuery, Shop, Topic } from "./schemas";
 
 // The single entry point every page uses for data. Server-side only: client
 // components receive plain data as props and must never import this module.
@@ -10,6 +10,8 @@ export interface DataSource {
   getOverview(id: string, range?: Partial<MonthRange>): Promise<Overview | null>;
   getAspects(id: string, range?: Partial<MonthRange>): Promise<Aspect[] | null>;
   getReviewsByIds(id: string, ids: string[]): Promise<Review[]>;
+  getTopics(id: string): Promise<Topic[] | null>;
+  getReviews(id: string, query: ReviewQuery): Promise<ReviewPage | null>;
 }
 
 // The one line later parts change: swap the mock for the real API-backed source.
