@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { logout } from "@/app/actions/auth";
 import { DemoBar } from "@/components/shop/DemoBar";
 import { Sidebar } from "@/components/shop/Sidebar";
 import { shopAccess } from "@/lib/auth/access";
@@ -35,7 +36,7 @@ async function ShopSidebar({ params }: { params: Promise<{ shopId: string }> }) 
   // The page itself enforces access; the sidebar just mustn't reveal a shop the viewer can't see.
   const visible = shop && shopAccess(shop, ownerId, viewerId) === "ok" ? shop : null;
   const canManage = !!visible && !visible.isDemo && ownerId === viewerId;
-  return <Sidebar shops={shops} current={visible} canManage={canManage} user={user ? { name: user.name } : null} />;
+  return <Sidebar shops={shops} current={visible} canManage={canManage} user={user ? { name: user.name } : null} logoutAction={logout} />;
 }
 
 async function ShopDemoBar({ params }: { params: Promise<{ shopId: string }> }) {

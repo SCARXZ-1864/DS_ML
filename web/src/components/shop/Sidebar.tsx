@@ -7,7 +7,14 @@ import { CommandPalette } from "./CommandPalette";
 import { type ShopNavItem, visibleNav } from "./shop-nav";
 import { ShopSwitcher } from "./ShopSwitcher";
 
-type Props = { shops: Shop[]; current: Shop | null; canManage: boolean; user: { name: string } | null };
+type Props = {
+  shops: Shop[];
+  current: Shop | null;
+  canManage: boolean;
+  user: { name: string } | null;
+  /** The logout Server Action, passed in so this client component never imports server code. */
+  logoutAction?: () => Promise<void>;
+};
 type Item = { key: string; label: string; href: string; badge?: number };
 
 const LINK =
@@ -33,7 +40,7 @@ function NavList({ items, pathname }: { items: Item[]; pathname: string }) {
   );
 }
 
-export function Sidebar({ shops, current, canManage, user }: Props) {
+export function Sidebar({ shops, current, canManage, user, logoutAction }: Props) {
   const pathname = usePathname();
   const shopItems = (shop: Shop, list: ShopNavItem[]): Item[] =>
     list.map((i) => ({
@@ -79,7 +86,7 @@ export function Sidebar({ shops, current, canManage, user }: Props) {
                 { key: "settings", label: "Settings", href: "/app/settings" },
               ]}
             />
-            <form>
+            <form action={logoutAction}>
               <button type="submit" className="w-full px-2.5 py-1.5 text-left text-sm text-muted hover:text-ink">
                 Log out
               </button>
