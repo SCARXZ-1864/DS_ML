@@ -1,7 +1,7 @@
 import type { z } from "zod";
 
 // The shared error shape for every API route (docs/ENGINEERING.md §3).
-export type ErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "INTERNAL_ERROR";
+export type ErrorCode = "VALIDATION_ERROR" | "UNAUTHORIZED" | "NOT_FOUND" | "INTERNAL_ERROR";
 
 export function apiError(code: ErrorCode, status: number, message: string, requestId: string): Response {
   return Response.json(
