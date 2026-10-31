@@ -1,4 +1,5 @@
 import type { DataSource } from "../index";
+import { deleteAlertRule, listAlertEvents, listAlertRules, markAlertsRead, saveAlertRule } from "./alerts";
 import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from "../derive";
 import { composeAnswer, streamChunks } from "./ask";
 import { predictText } from "./predict";
@@ -114,5 +115,25 @@ export const mockDataSource: DataSource = {
 
   async disconnectSource(shopId, sourceId) {
     return disconnectSourceAt(shopId, sourceId);
+  },
+
+  async listAlertRules(shopId) {
+    return listAlertRules(shopId);
+  },
+
+  async saveAlertRule(rule) {
+    return saveAlertRule(rule);
+  },
+
+  async deleteAlertRule(shopId, ruleId) {
+    deleteAlertRule(shopId, ruleId);
+  },
+
+  async listAlertEvents(shopId) {
+    return listAlertEvents(shopId);
+  },
+
+  async markAlertsRead(shopId) {
+    markAlertsRead(shopId);
   },
 };

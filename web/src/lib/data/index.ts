@@ -1,7 +1,7 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
 import type {
-  Aspect, ChatChunk, GoogleLocation, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Source,
+  AlertEvent, AlertRule, Aspect, ChatChunk, GoogleLocation, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Source,
   Topic, Upload, UploadRequest, User,
 } from "./schemas";
 
@@ -36,6 +36,14 @@ export interface DataSource {
   connectGoogle(shopId: string, input: { locationId: string; accountLabel: string }): Promise<Source | null>;
   syncSource(shopId: string, sourceId: string): Promise<Source | null>;
   disconnectSource(shopId: string, sourceId: string): Promise<Source | null>;
+
+  // Alerts: rules an owner sets, and the alerts they raised (newest first).
+  listAlertRules(shopId: string): Promise<AlertRule[]>;
+  /** Adds the rule when its id is empty, otherwise replaces the rule with that id. */
+  saveAlertRule(rule: AlertRule): Promise<AlertRule>;
+  deleteAlertRule(shopId: string, ruleId: string): Promise<void>;
+  listAlertEvents(shopId: string): Promise<AlertEvent[]>;
+  markAlertsRead(shopId: string): Promise<void>;
 }
 
 // The one line later parts change: swap the mock for the real API-backed source.
