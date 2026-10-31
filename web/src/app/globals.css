@@ -73,6 +73,25 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* Side drawer built on the native <dialog>: focus trap, Esc and an inert background come free. */
+dialog.drawer {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(34rem, 100vw);
+  border: 0;
+  border-left: 1px solid var(--color-line);
+  background: var(--color-panel-2);
+  color: var(--color-ink);
+  padding: 0;
+}
+dialog.drawer[open] { animation: slide-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+dialog.drawer::backdrop { background: rgb(0 0 0 / 0.55); }
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

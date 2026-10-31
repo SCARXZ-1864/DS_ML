@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { AspectBars } from "./AspectBars";
 
 describe("AspectBars", () => {
@@ -26,5 +26,12 @@ describe("AspectBars", () => {
   it("explains an empty list", () => {
     render(<AspectBars rows={[]} />);
     expect(screen.getByText("No aspects mentioned in this range.")).toBeTruthy();
+  });
+
+  it("turns rows into buttons when a row can be selected", () => {
+    const onSelect = vi.fn();
+    render(<AspectBars rows={[{ id: "price", name: "Price", mentions: 30, posPct: 72, negPct: 10 }]} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole("button", { name: /Price: 72% positive/ }));
+    expect(onSelect).toHaveBeenCalledWith("price");
   });
 });

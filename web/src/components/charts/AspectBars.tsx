@@ -1,8 +1,12 @@
 import type { AspectRow } from "@/lib/data/derive";
 import { fmtSigned } from "@/lib/format";
 
+const ROW = "grid w-full grid-cols-[7.5rem_1fr_3rem] items-center gap-3 text-left text-sm";
+
+type Props = { rows: AspectRow[]; onSelect?: (id: string) => void };
+
 /** Diverging bars: negative grows left from the centre line, positive grows right. */
-export function AspectBars({ rows }: { rows: AspectRow[] }) {
+export function AspectBars({ rows, onSelect }: Props) {
   if (rows.length === 0) return <p className="text-sm text-muted">No aspects mentioned in this range.</p>;
   return (
     <div>
@@ -10,8 +14,8 @@ export function AspectBars({ rows }: { rows: AspectRow[] }) {
         {rows.map((r, i) => {
           const net = Math.round(r.posPct - r.negPct);
           const delay = { animationDelay: `${i * 50}ms` };
-          return (
-            <li key={r.id} className="grid grid-cols-[7.5rem_1fr_3rem] items-center gap-3 text-sm">
+          const cells = (
+            <>
               <span className="sr-only">
                 {`${r.name}: ${Math.round(r.posPct)}% positive, ${Math.round(r.negPct)}% negative, net ${fmtSigned(net)}`}
               </span>
@@ -23,6 +27,22 @@ export function AspectBars({ rows }: { rows: AspectRow[] }) {
               <span aria-hidden className={`text-right font-mono text-xs ${net < 0 ? "text-neg" : "text-pos"}`}>
                 {fmtSigned(net)}
               </span>
+            </>
+          );
+          return (
+            <li key={r.id}>
+              {onSelect ? (
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  onClick={() => onSelect(r.id)}
+                  className={`${ROW} -mx-1.5 px-1.5 py-1 hover:bg-panel focus-visible:outline-2 focus-visible:outline-accent`}
+                >
+                  {cells}
+                </button>
+              ) : (
+                <div className={ROW}>{cells}</div>
+              )}
             </li>
           );
         })}
