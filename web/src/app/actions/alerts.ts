@@ -15,9 +15,11 @@ async function ownRule(shopId: string, ruleId: string) {
 
 export async function saveRule(shopId: string, input: unknown): Promise<ActionState> {
   if ("error" in (await ownerGuard(shopId))) return NOT_FOUND;
-  const parsed = AlertRuleSchema.safeParse(input);
+  // A new rule arrives with an empty id; validate it with a placeholder, then keep "" (= create).
+  const isNew = typeof input === "object" && input !== null && !(input as { id?: unknown }).id;
+  const parsed = AlertRuleSchema.safeParse(isNew ? { ...(input as object), id: "new" } : input);
   if (!parsed.success) return { ok: false, message: firstIssue(parsed.error) };
-  const rule = { ...parsed.data, shopId };
+  const rule = { ...parsed.data, id: isNew ? "" : parsed.data.id, shopId };
   if (rule.id && !(await ownRule(shopId, rule.id))) return NOT_FOUND;
   await data.saveAlertRule(rule);
   refresh();

@@ -196,3 +196,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `web/src/app/(app)/shops/[shopId]/uploads/page.tsx`
 - **Verified by:** the error no longer appears in the dev server log during the walkthrough
 - **Attempts:** 1
+
+### 2026-10-31 — "Add rule" on the Alerts page did nothing
+- **Milestone:** Part 1 checkpoint 3, Task 13 (walkthrough)
+- **Error:** clicking "Add rule" left the rule count unchanged. The Server Action returned `id: Too small: expected string to have >=1 characters`.
+- **Root cause:** a new rule is sent with an empty `id`, which means "create". `saveRule` validated it against `AlertRuleSchema`, which requires a non-empty id, so every new rule was rejected. The unit tests only covered the data layer (which accepts an empty id) and the row component, never the action with a new rule.
+- **Fix:** `saveRule` validates a new rule with a placeholder id, then passes it on with the empty id. Added `alerts.actions.test.ts` (new rule added; another user can't toggle; can't edit another shop's rule id).
+- **Files changed:** `web/src/app/actions/alerts.ts`, `web/src/app/actions/alerts.actions.test.ts`
+- **Verified by:** the new test failed with the message above, then passed; full suite 341/341
+- **Attempts:** 1
