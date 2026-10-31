@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { EmptyShop } from "@/components/shop/EmptyShop";
 import { PageHeader } from "@/components/shop/PageHeader";
 import { PageSkeleton } from "@/components/shop/PageSkeleton";
 import { LiveAnalyzer } from "@/components/try/LiveAnalyzer";
@@ -16,7 +17,8 @@ export default function TryPage({ params }: PageProps<"/shops/[shopId]/try">) {
 
 async function TryLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/try`);
+  const { shop, canManage } = await loadShopForViewer(shopId, `/shops/${shopId}/try`);
+  if (shop.reviewCount === 0) return <EmptyShop shop={shop} canManage={canManage} />;
   const aspects = (await data.getAspects(shopId)) ?? [];
   return (
     <div className="animate-fade-rise">

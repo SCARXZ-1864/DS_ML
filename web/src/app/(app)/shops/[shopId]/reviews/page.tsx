@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { EmptyShop } from "@/components/shop/EmptyShop";
 import { PageHeader } from "@/components/shop/PageHeader";
 import { PageSkeleton } from "@/components/shop/PageSkeleton";
 import { ReviewExplorer } from "@/components/shop/ReviewExplorer";
@@ -16,7 +17,8 @@ export default function ReviewsPage({ params }: PageProps<"/shops/[shopId]/revie
 
 async function ReviewsLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/reviews`);
+  const { shop, canManage } = await loadShopForViewer(shopId, `/shops/${shopId}/reviews`);
+  if (shop.reviewCount === 0) return <EmptyShop shop={shop} canManage={canManage} />;
   const [aspects, initial] = await Promise.all([data.getAspects(shopId), data.getReviews(shopId, ReviewQuerySchema.parse({}))]);
   return (
     <div className="animate-fade-rise">

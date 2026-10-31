@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { EmptyShop } from "@/components/shop/EmptyShop";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { PageHeader } from "@/components/shop/PageHeader";
 import { PageSkeleton } from "@/components/shop/PageSkeleton";
@@ -16,7 +17,8 @@ export default function AskPage({ params }: PageProps<"/shops/[shopId]/ask">) {
 
 async function AskLoader({ params }: { params: Promise<{ shopId: string }> }) {
   const { shopId } = await params;
-  const { shop } = await loadShopForViewer(shopId, `/shops/${shopId}/ask`);
+  const { shop, canManage } = await loadShopForViewer(shopId, `/shops/${shopId}/ask`);
+  if (shop.reviewCount === 0) return <EmptyShop shop={shop} canManage={canManage} />;
   const aspects = (await data.getAspects(shopId)) ?? [];
   const reviews = await data.getReviewsByIds(shopId, aspects.flatMap((a) => a.exampleReviewIds));
   return (

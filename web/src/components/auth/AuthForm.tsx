@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { BUTTON, Field, FormMessage } from "@/components/forms/Field";
 import type { ActionState } from "@/lib/data/schemas";
 
 type Props = {
@@ -9,33 +10,6 @@ type Props = {
   action: (prev: ActionState, form: FormData) => Promise<ActionState>;
   next: string;
 };
-
-export const INPUT =
-  "w-full border border-line bg-panel-2 px-3 py-2 text-ink placeholder:text-muted focus:border-accent focus:outline-none aria-[invalid=true]:border-neg";
-export const BUTTON =
-  "bg-accent px-4 py-2 font-semibold text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
-
-function Field({ name, label, type = "text", autoComplete, error }: {
-  name: string; label: string; type?: string; autoComplete: string; error?: string;
-}) {
-  const errorId = `${name}-error`;
-  return (
-    <div className="grid gap-1.5 text-sm">
-      <label htmlFor={name}>{label}</label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        required
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        className={INPUT}
-      />
-      {error && <span id={errorId} className="text-neg">{error}</span>}
-    </div>
-  );
-}
 
 /** Login and signup share one form; the Server Action decides what happens. */
 export function AuthForm({ mode, action, next }: Props) {
@@ -56,7 +30,7 @@ export function AuthForm({ mode, action, next }: Props) {
         autoComplete={isLogin ? "current-password" : "new-password"}
         error={errors.password}
       />
-      {state.message && <p role="alert" className="text-sm text-neg">{state.message}</p>}
+      <FormMessage ok={state.ok} message={state.message} />
       <button type="submit" disabled={pending} className={BUTTON}>
         {pending ? (isLogin ? "Signing in…" : "Creating account…") : isLogin ? "Log in" : "Create account"}
       </button>
