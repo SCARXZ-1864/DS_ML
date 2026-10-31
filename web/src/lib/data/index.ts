@@ -1,7 +1,8 @@
 import type { MonthRange } from "./derive";
 import { mockDataSource } from "./mock";
 import type {
-  Aspect, ChatChunk, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Topic, User,
+  Aspect, ChatChunk, NewShopInput, Overview, Prediction, Review, ReviewPage, ReviewQuery, Shop, Topic, Upload,
+  UploadRequest, User,
 } from "./schemas";
 
 // The single entry point every page uses for data. Server-side only: client
@@ -22,6 +23,11 @@ export interface DataSource {
   getReviews(id: string, query: ReviewQuery): Promise<ReviewPage | null>;
   ask(id: string, question: string): Promise<AsyncIterable<ChatChunk> | null>;
   predict(id: string, text: string): Promise<Prediction | null>;
+
+  // Uploads: newest first. Processing runs in the background; poll getUpload for progress.
+  listUploads(shopId: string): Promise<Upload[]>;
+  startUpload(shopId: string, req: UploadRequest): Promise<Upload>;
+  getUpload(shopId: string, uploadId: string): Promise<Upload | null>;
 }
 
 // The one line later parts change: swap the mock for the real API-backed source.

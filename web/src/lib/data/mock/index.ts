@@ -4,6 +4,7 @@ import { composeAnswer, streamChunks } from "./ask";
 import { predictText } from "./predict";
 import { queryReviews } from "./query";
 import { createShop, EMPTY_PAGE, findShop, getStore, listShopsFor } from "./store";
+import { getUploadAt, listUploadsAt, startUploadAt } from "./uploads";
 
 // Pause between streamed chunks, so the UI shows the answer arriving word by word.
 const STREAM_DELAY_MS = 30;
@@ -80,5 +81,17 @@ export const mockDataSource: DataSource = {
   async predict(id, text) {
     const e = entry(id);
     return e ? predictText(text, e.aspects) : null;
+  },
+
+  async listUploads(shopId) {
+    return listUploadsAt(shopId, Date.now());
+  },
+
+  async startUpload(shopId, req) {
+    return startUploadAt(shopId, req, Date.now());
+  },
+
+  async getUpload(shopId, uploadId) {
+    return getUploadAt(shopId, uploadId, Date.now());
   },
 };
