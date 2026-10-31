@@ -126,4 +126,46 @@ describe("UploadWizard", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Start import" }));
     await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Log in to upload reviews"));
   });
+
+  const startImport = async () => {
+    render(<UploadWizard shopId="s1" />);
+    await chooseFile("r.csv", "Review\nLovely staff and quick service\n");
+    fireEvent.click(await screen.findByRole("button", { name: "Next" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Start import" }));
+    await screen.findByText("Scoring sentiment");
+  };
+
+  it("keeps polling after a single failed progress check", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(upload("processing"), { status: 201 }))
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValue(Response.json(upload("done"))),
+    );
+    await startImport();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+    expect(await screen.findByRole("heading", { name: "What changed" })).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("explains where to look after several failed progress checks", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(Response.json(upload("processing"), { status: 201 }))
+        .mockRejectedValue(new TypeError("Failed to fetch")),
+    );
+    await startImport();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Lost track of the upload.");
+    expect(screen.getByRole("link", { name: "Check Uploads" }).getAttribute("href")).toBe("/shops/s1/uploads");
+  });
 });

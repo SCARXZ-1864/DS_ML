@@ -11,13 +11,21 @@ export function shopAccess(shop: Shop, ownerId: string | null, viewerId: string 
   return ownerId !== null && ownerId === viewerId ? "ok" : "not-found";
 }
 
+const SAME_SITE = "http://same-site.invalid";
+
 /**
- * Where to go after logging in. Only paths inside this app are allowed: "//host" and "/\host"
- * are treated by browsers as other websites, so they could send users to a phishing page.
+ * Where to go after logging in. Only paths inside this app are allowed: "//host", "/\host" and
+ * "/<tab>/host" (browsers strip tabs and newlines) all mean another website, which could be a
+ * phishing page. So control characters and backslashes are refused, and the path must still be
+ * on this site after a browser-style parse.
  */
 export function safeNext(next: unknown): string {
-  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/app";
-  return next;
+  if (typeof next !== "string" || !next.startsWith("/") || /[\u0000-\u001f\u007f\\]/.test(next)) return "/app";
+  try {
+    return new URL(next, SAME_SITE).origin === SAME_SITE ? next : "/app";
+  } catch {
+    return "/app";
+  }
 }
 
 const DEMO_OWNER_EMAIL = "owner@demo.test";

@@ -20,6 +20,14 @@ describe("safeNext", () => {
     "falls back to /app for %s",
     (next) => expect(safeNext(next)).toBe("/app"),
   );
+  // Browsers strip tabs and newlines from URLs, so "/\t/evil.example" becomes "//evil.example".
+  it.each(["/\t/evil.example", "/\n/evil.example", "/\r/evil.example", "\t//evil.example"])(
+    "falls back to /app when control characters hide another site: %j",
+    (next) => expect(safeNext(next)).toBe("/app"),
+  );
+  it("keeps the query string and fragment of a path inside the app", () => {
+    expect(safeNext("/app/compare?a=x&b=y#top")).toBe("/app/compare?a=x&b=y#top");
+  });
 });
 
 describe("userIdForEmail", () => {

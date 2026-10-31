@@ -16,3 +16,10 @@ export function firstIssue(error: z.ZodError): string {
   if (!issue) return "Invalid input";
   return `${issue.path.join(".") || "input"}: ${issue.message}`;
 }
+
+/** The error response for a failed access check (lib/data/load.ts guards). */
+export function accessError(error: "UNAUTHORIZED" | "NOT_FOUND", requestId: string): Response {
+  return error === "UNAUTHORIZED"
+    ? apiError("UNAUTHORIZED", 401, "Log in to see this shop", requestId)
+    : apiError("NOT_FOUND", 404, "Shop not found", requestId);
+}

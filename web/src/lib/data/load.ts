@@ -30,3 +30,13 @@ export async function ownerGuard(shopId: string): Promise<{ userId: string } | {
   if (!shop || shop.isDemo || ownerId !== viewerId) return { error: "NOT_FOUND" };
   return { userId: viewerId };
 }
+
+/** Read access for API routes: demo shops for anyone, an owner shop only for its owner. */
+export async function viewerGuard(shopId: string): Promise<{ ok: true } | { error: "UNAUTHORIZED" | "NOT_FOUND" }> {
+  const shop = await data.getShop(shopId);
+  if (!shop) return { error: "NOT_FOUND" };
+  if (shop.isDemo) return { ok: true };
+  const [ownerId, viewerId] = await Promise.all([data.getShopOwner(shopId), getSessionUserId()]);
+  const access = shopAccess(shop, ownerId, viewerId);
+  return access === "ok" ? { ok: true } : { error: access === "login" ? "UNAUTHORIZED" : "NOT_FOUND" };
+}

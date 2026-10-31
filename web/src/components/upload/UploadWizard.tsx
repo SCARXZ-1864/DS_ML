@@ -14,6 +14,7 @@ import { PreviewTable } from "./PreviewTable";
 import { ProcessingStages } from "./ProcessingStages";
 
 const POLL_MS = 1000;
+const MAX_POLL_FAILURES = 3;
 const STEPS = ["File", "Columns", "Preview", "Processing"] as const;
 
 type Parsed = { fileName: string; columns: ColumnGuess[]; rows: string[][] };
@@ -31,6 +32,7 @@ export function UploadWizard({ shopId }: { shopId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [upload, setUpload] = useState<Upload | null>(null);
   const [starting, setStarting] = useState(false);
+  const [lostTrack, setLostTrack] = useState(false);
 
   const textColumns = roles.filter((r) => r === "text").length;
   const prepared = useMemo(
@@ -43,6 +45,7 @@ export function UploadWizard({ shopId }: { shopId: string }) {
     setRoles([]);
     setUpload(null);
     setError(null);
+    setLostTrack(false);
     setStep(0);
   };
 
@@ -87,16 +90,22 @@ export function UploadWizard({ shopId }: { shopId: string }) {
     if (!pollId) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
+    let failures = 0;
     const poll = async () => {
       try {
         const res = await fetch(`/api/shops/${shopId}/uploads/${pollId}`, { signal: controller.signal });
         if (!res.ok) throw new Error(await apiMessage(res));
         const next = UploadSchema.parse(await res.json());
+        failures = 0;
         setUpload(next);
         if (next.status === "processing") timer = setTimeout(poll, POLL_MS);
-      } catch (e) {
+      } catch {
         if (controller.signal.aborted) return;
-        setError(e instanceof Error && e.message ? e.message : "Lost track of the upload. Check Uploads for its status.");
+        // One failed check (a network blip) shouldn't end the wizard: the upload keeps going on
+        // the server, so try again, and only give up after several failures in a row.
+        failures += 1;
+        if (failures < MAX_POLL_FAILURES) timer = setTimeout(poll, POLL_MS);
+        else setLostTrack(true);
       }
     };
     timer = setTimeout(poll, POLL_MS);
@@ -155,7 +164,12 @@ export function UploadWizard({ shopId }: { shopId: string }) {
               <button type="button" onClick={reset} className={`${BUTTON_QUIET} mt-3`}>Try again</button>
             </div>
           )}
-          {error && upload.status === "processing" && <p role="alert" className="text-sm text-neg">{error}</p>}
+          {lostTrack && upload.status === "processing" && (
+            <p role="alert" className="text-sm text-neg">
+              Lost track of the upload. It may still be processing.{" "}
+              <Link href={`/shops/${shopId}/uploads`} className="text-ink underline underline-offset-2">Check Uploads</Link>
+            </p>
+          )}
           {upload.status === "done" && (
             <>
               <h2 className="font-serif text-2xl">What changed</h2>
