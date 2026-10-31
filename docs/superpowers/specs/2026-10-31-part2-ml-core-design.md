@@ -1,6 +1,6 @@
 # Part 2 design: ML core (sentiment, aspects and the shop report)
 
-**Date:** 2026-10-31 · **Status:** awaiting user approval · **Owner:** project author (reviewer), Claude (implementer)
+**Date:** 2026-10-31 · **Status:** approved 2026-11-01 · **Owner:** project author (reviewer), Claude (implementer)
 
 ## 1. Intent
 
