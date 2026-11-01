@@ -39,10 +39,13 @@ nb = [
 db = [
     "psycopg[binary]>=3.2",
 ]
+llm = [
+    "google-genai>=1.0",
+]
 
 [tool.uv]
 # Install everything by default: the notebooks need data, ML and Jupyter packages.
-default-groups = ["dev", "data", "ml", "nb", "db"]
+default-groups = ["dev", "data", "ml", "nb", "db", "llm"]
 
 # The laptop has no GPU, so PyTorch comes from the CPU-only index (~200 MB instead of
 # ~2.5 GB). GPU builds are installed inside the Modal image instead.
