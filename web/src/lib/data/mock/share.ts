@@ -49,7 +49,7 @@ export function getReport(token: string): Report | null {
   const aspects = entry.aspects.map((a) => aspectInRange(a, range));
   const worst = [...aspects].filter((a) => a.mentions > 0).sort((a, b) => b.negPct - a.negPct)[0]?.name ?? null;
   const quotes = [...entry.reviews]
-    .filter((r) => r.date >= `${range.from}-01`)
+    .filter((r) => r.date !== null && r.date >= `${range.from}-01`)
     .sort((a, b) => (b.helpful ?? 0) - (a.helpful ?? 0))
     .slice(0, 3);
 

@@ -1,12 +1,14 @@
 import type { Review, ReviewPage, ReviewQuery, ReviewSort } from "../schemas";
 
-const byDate = (a: Review, b: Review) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+const byDate = (a: Review, b: Review) => (a.date ?? "").localeCompare(b.date ?? "") || a.id.localeCompare(b.id);
+// Reviews without a date always go last, whichever way dates are sorted.
+const undatedLast = (a: Review, b: Review) => Number(a.date === null) - Number(b.date === null);
 // Reviews without stars sort as 3★ so they sit in the middle.
 const stars = (r: Review) => r.stars ?? 3;
 
 const COMPARE: Record<ReviewSort, (a: Review, b: Review) => number> = {
-  newest: (a, b) => byDate(b, a),
-  oldest: byDate,
+  newest: (a, b) => undatedLast(a, b) || byDate(b, a),
+  oldest: (a, b) => undatedLast(a, b) || byDate(a, b),
   lowest: (a, b) => stars(a) - stars(b) || byDate(b, a),
   highest: (a, b) => stars(b) - stars(a) || byDate(b, a),
 };

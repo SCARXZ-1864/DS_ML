@@ -76,7 +76,7 @@ describe("mock data", () => {
   it("only generates reviews for a new aspect in the months it exists", async () => {
     const page = (await ds.getReviews("spice-indiranagar", ReviewQuerySchema.parse({ aspectId: "spice", limit: 50 })))!;
     expect(page.total).toBeGreaterThan(0);
-    page.items.forEach((r) => expect(r.date >= "2026-05").toBe(true));
+    page.items.forEach((r) => expect(r.date! >= "2026-05").toBe(true));
   });
 
   it("streams an answer and predicts for known shops only", async () => {

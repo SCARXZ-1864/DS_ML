@@ -7,7 +7,7 @@ import { deriveTopics } from "./topics";
 
 export type ShopEntry = { shop: Shop; overview: Overview; aspects: Aspect[]; reviews: Review[]; topics: Topic[] };
 
-const byNewest = (a: Review, b: Review) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
+const byNewest = (a: Review, b: Review) => (b.date ?? "").localeCompare(a.date ?? "") || a.id.localeCompare(b.id);
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 

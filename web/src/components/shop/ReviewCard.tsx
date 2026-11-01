@@ -25,7 +25,7 @@ export function ReviewCard({ review, aspectNames, id }: Props) {
     <article id={id} className="grid scroll-mt-24 gap-1 border-t border-line py-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <Stars value={review.stars} />
-        <span className="font-mono text-muted">{fmtDate(review.date)}</span>
+        <span className="font-mono text-muted">{review.date ? fmtDate(review.date) : "No date"}</span>
         <span className={`ml-auto border px-1.5 font-mono ${PILL[review.sentiment]}`}>{review.sentiment}</span>
       </div>
       <p className="m-0 font-serif text-[15px] leading-relaxed">

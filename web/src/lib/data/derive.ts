@@ -130,8 +130,9 @@ export function topComplaints(rows: AspectRow[], reviews: Review[], range: Month
       // Only quote a review from inside the selected range; a quote from another
       // period would misrepresent what customers said in this one.
       const quote = reviews.find((rv) => {
-        const month = rv.date.slice(0, 7);
+        const month = rv.date?.slice(0, 7);
         return (
+          month !== undefined &&
           month >= range.from &&
           month <= range.to &&
           rv.aspectMentions.some((m) => m.aspectId === r.id && m.sentiment === "negative")

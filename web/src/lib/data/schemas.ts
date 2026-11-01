@@ -78,7 +78,7 @@ export const AspectSchema = z.object({
 export const ReviewSchema = z
   .object({
     id: z.string().min(1),
-    date: isoDate,
+    date: isoDate.nullable(), // null when the source had no usable date
     stars: z.number().int().min(1).max(5).nullable(),
     text: z.string().min(1),
     sentiment: ToneSchema,

@@ -36,6 +36,11 @@ describe("data contract", () => {
     expect(() => ReviewSchema.parse(review)).toThrow(/inside the text/);
   });
 
+  it("accepts a review without a date", () => {
+    const review = { id: "r1", date: null, stars: null, text: "Fine", sentiment: "neutral", confidence: 0.6, aspectMentions: [] };
+    expect(ReviewSchema.parse(review).date).toBeNull();
+  });
+
   it("accepts a shop without an upload date", () => {
     const shop = {
       id: "s1", name: "Corner Cafe", type: "restaurant", isDemo: true, reviewCount: 3,

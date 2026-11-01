@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ReviewQuerySchema, type Review } from "../schemas";
 import { queryReviews } from "./query";
 
-const r = (id: string, date: string, stars: number | null, sentiment: Review["sentiment"], text: string, aspectId = "a"): Review => ({
+const r = (id: string, date: string | null, stars: number | null, sentiment: Review["sentiment"], text: string, aspectId = "a"): Review => ({
   id, date, stars, text, sentiment, confidence: 0.9, aspectMentions: [{ aspectId, start: 0, end: 1, sentiment }],
 });
 const reviews = [
@@ -19,6 +19,12 @@ describe("queryReviews", () => {
     expect(page.items.map((x) => x.id)).toEqual(["4", "2", "3", "1"]);
     expect(page.total).toBe(4);
     expect(page.nextCursor).toBeNull();
+  });
+
+  it("puts reviews without a date last, whichever way dates are sorted", () => {
+    const withUndated = [...reviews, r("5", null, 4, "positive", "No date here")];
+    expect(queryReviews(withUndated, q()).items.map((x) => x.id)).toEqual(["4", "2", "3", "1", "5"]);
+    expect(queryReviews(withUndated, q({ sort: "oldest" })).items.map((x) => x.id)).toEqual(["1", "3", "2", "4", "5"]);
   });
 
   it("filters by sentiment, stars and aspect", () => {
