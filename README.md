@@ -103,7 +103,7 @@ Details: `pipeline/notebooks/02_baseline.ipynb` and `03_distilbert.ipynb`.
 | Model | Macro F1 (test) | Neg F1 | Neu F1 | Pos F1 | Notes |
 |-------|-----------------|--------|--------|--------|-------|
 | TF-IDF + LogReg (baseline) | 0.732 | 0.812 | 0.445 | 0.941 | accuracy 87.2%; laptop CPU |
-| DistilBERT (fine-tuned) | **0.761** | **0.837** | **0.492** | **0.954** | accuracy 88.7%; 47 free GPU-minutes on Kaggle (T4) |
+| [DistilBERT (fine-tuned)](https://huggingface.co/diggiiiiiii/review-intel-sentiment) | **0.761** | **0.837** | **0.492** | **0.954** | accuracy 88.7%; 47 free GPU-minutes on Kaggle (T4) |
 | DistilBERT, never saw appliances | 0.699 (appliances only) | — | — | — | baseline trained *with* appliances: 0.688 |
 
 | Component | Metric | Value |
