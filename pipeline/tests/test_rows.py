@@ -128,3 +128,11 @@ def test_a_shop_with_no_reviews_has_no_dates():
     }
     rows = shop_rows(META, empty)
     assert rows["shops"][0]["date_from"] is None and rows["reviews"] == []
+
+
+def test_complaint_quotes_prefer_a_review_that_is_negative_overall():
+    mixed = review("r9", "2026-04-01", "positive", [("wait", "negative")])  # newest, but upbeat
+    report = {**REPORT, "reviews": [*REPORT["reviews"], mixed]}
+    assert top_complaints(report)[0]["quoteReviewId"] == "r2"
+    only_mixed = {**REPORT, "reviews": [mixed]}
+    assert top_complaints(only_mixed)[0]["quoteReviewId"] == "r9"  # better than no quote

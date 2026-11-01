@@ -313,3 +313,12 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `pipeline/src/review_intel/report.py`, `pipeline/tests/test_report.py`, notebook 05
 - **Verified by:** `test_review_results_carry_the_text_their_offsets_point_into` failed (KeyError 'text'), then passed; 14/14 report tests
 - **Attempts:** 1
+
+### 2026-11-02 — Gemini model retired for new accounts; the script retried a hopeless error
+- **Milestone:** Part 3, demo reviews
+- **Error:** `404 NOT_FOUND: This model models/gemini-2.5-flash is no longer available to new users`, retried 4 times over about 3 minutes before failing.
+- **Root cause:** Google stops offering pinned model versions to new API keys while older keys keep them, so the name in the code worked in docs but not for this account. The retry loop treated every error as temporary.
+- **Fix:** the default model is the `gemini-flash-latest` alias, which can still be overridden with `GEMINI_MODEL`. Only rate limits (429), server errors and malformed batches are retried; other client errors stop at once.
+- **Files changed:** `pipeline/scripts/make_demo_reviews.py`
+- **Verified by:** listing the models available to the key showed the alias; a 5-review test batch came back with one review per planned line
+- **Attempts:** 1

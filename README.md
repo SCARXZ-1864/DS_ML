@@ -71,11 +71,38 @@ INFERENCE_URL=http://127.0.0.1:7860 pnpm dev
 (cd web       && pnpm lint && pnpm typecheck && pnpm test && pnpm build)
 ```
 
-## Frontend preview (mock data)
+## Frontend preview
 
-`cd web && pnpm dev`, then open http://localhost:3000. Every screen currently runs on seeded mock data from
-`web/src/lib/data/mock/`. Pages only use the `DataSource` interface in `web/src/lib/data/index.ts`, so later
-parts swap in the real backend by changing one line.
+`cd web && pnpm dev`, then open http://localhost:3000. Pages only use the `DataSource` interface in
+`web/src/lib/data/index.ts`.
+
+- **Without database keys,** every screen runs on seeded mock data from `web/src/lib/data/mock/`.
+- **With `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`** in `web/.env.local`, the three demo shops come from the
+  database. Owner shops and owner features stay on mock data until Parts 4–5.
+
+## Database and demo shops (Part 3)
+
+Supabase Postgres, schema in `db/migrations/`. Row-level security is on for every table:
+- anyone may read the demo shops;
+- a signed-in owner may read only their own shops;
+- only the server's service role can write.
+
+The demo shops' reviews are **invented**: no Yelp or Amazon text goes into the database, because the public site
+shows it.
+- `review_intel/demo.py` plans each review (its topics, their tone, its stars, with a trend over time).
+- Gemini writes the text, committed in `pipeline/demo/`.
+- The real Part 2 models then score that text *without seeing the plan*, so the dashboard shows what they actually
+  read.
+
+From `pipeline/`, with `DATABASE_URL` and `GEMINI_API_KEY` in the repo's `.env`:
+
+```bash
+uv run python scripts/migrate.py             # apply new migrations (safe to re-run)
+uv run python scripts/make_demo_reviews.py   # write the demo reviews (free tier: 20 requests per model per day)
+uv run python scripts/load_demo_shops.py     # score them and load them (idempotent, ~1 min per shop on CPU)
+```
+
+Database tests run against the real project inside a rolled-back transaction, and skip when `DATABASE_URL` isn't set.
 
 ## Re-running the ML notebooks
 
@@ -127,4 +154,10 @@ _Expanded as the project progresses._
 - Sentiment labels are derived from star ratings (1–2 neg, 3 neu, 4–5 pos), which are noisy labels: a 5-star review can describe a broken item.
 - Chat and drill-down search a ~50k-review sample (free database tier). Dashboard aggregates cover all ~150k.
 - The free inference host sleeps when idle, so the first chat or "Try it" request may take ~30–90 s while it wakes up.
+- **Aspect categories are matched by the term's name alone.** Part 2 finds aspect *terms* ("biryani", "minutes");
+  `aspects/categories.py` rolls them up into a few categories per shop type by embedding similarity. Most terms land
+  correctly, but about 6% of mentions don't. "Bengaluru" counts as Food, and "every two minutes" in a complaint
+  about crowding counts as Wait time.
+- **The demo trends are weaker than planned.** With 300 reviews, a planned rise in wait-time complaints from 38% to
+  45% was within noise, and the models didn't recover it; VoltHome's larger installation trend (47% → 60%) they did.
 - Non-commercial academic demo. Data: [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) (McAuley Lab).

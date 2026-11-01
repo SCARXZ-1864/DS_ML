@@ -46,9 +46,14 @@ def _newest_first(reviews: list[dict]) -> list[dict]:
 
 
 def top_complaints(report: dict) -> list[dict]:
-    """The worst aspects (Part 2's ranking), each with the newest review that complains about it."""
+    """The worst aspects (Part 2's ranking), each quoted by the newest review that complains about
+    it, preferring reviews that are negative overall: a happy review that grumbles once
+    ("waited 20 minutes, which is normal") makes a weak example of a complaint."""
     pct = {a["id"]: a["negPct"] for a in report["aspects"]}
-    reviews = _newest_first(report["reviews"])
+    newest = _newest_first(report["reviews"])
+    reviews = [r for r in newest if r["sentiment"] == "negative"] + [
+        r for r in newest if r["sentiment"] != "negative"
+    ]
     out = []
     for aspect_id in report["worsts"]:
         quote = next(

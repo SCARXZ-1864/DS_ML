@@ -24,7 +24,8 @@ from review_intel.db.connect import ENV_FILE, read_env
 sys.stdout.reconfigure(encoding="utf-8")
 use_system_certificates()
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+# The alias follows Google's current Flash model: pinned versions get retired for new accounts.
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 BATCH = 25
 CACHE = config.PROCESSED_DIR / "demo_batches"
 OUT = config.REPO_ROOT / "pipeline" / "demo"
@@ -53,7 +54,12 @@ def write_batch(shop: dict, specs: list[dict]) -> list[dict]:
                 ),
             )
             return demo.accept(specs, json.loads(res.text))
-        except Exception as e:  # rate limits and the odd malformed batch: wait, then retry
+        except genai.errors.ClientError as e:
+            if e.code != 429:  # a wrong model or key won't fix itself; only rate limits are retried
+                raise
+            print(f"  rate limited; retrying in {15 * 2**attempt} s")
+            time.sleep(15 * 2**attempt)
+        except (genai.errors.ServerError, ValueError) as e:  # an overloaded server or a bad batch
             wait = 15 * 2**attempt
             print(f"  batch failed ({type(e).__name__}: {str(e)[:120]}); retrying in {wait} s")
             time.sleep(wait)

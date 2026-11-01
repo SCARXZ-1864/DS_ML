@@ -137,6 +137,7 @@ export function aspectRows(aspects: Aspect[], range: MonthRange): AspectRow[] {
 }
 
 export function topComplaints(rows: AspectRow[], reviews: Review[], range: MonthRange, limit = 3): ComplaintItem[] {
+  const quoted = new Set<string>(); // one review complaining about two aspects is quoted once
   return [...rows]
     .filter((r) => r.negPct > 0)
     .sort((x, y) => y.negPct - x.negPct)
@@ -144,15 +145,19 @@ export function topComplaints(rows: AspectRow[], reviews: Review[], range: Month
     .map((r) => {
       // Only quote a review from inside the selected range; a quote from another
       // period would misrepresent what customers said in this one.
-      const quote = reviews.find((rv) => {
+      const complains = (rv: Review) => {
         const month = rv.date?.slice(0, 7);
         return (
+          !quoted.has(rv.id) &&
           month !== undefined &&
           month >= range.from &&
           month <= range.to &&
           rv.aspectMentions.some((m) => m.aspectId === r.id && m.sentiment === "negative")
         );
-      });
+      };
+      // A review that is negative overall makes a clearer example than a happy one that grumbles once.
+      const quote = reviews.find((rv) => rv.sentiment === "negative" && complains(rv)) ?? reviews.find(complains);
+      if (quote) quoted.add(quote.id);
       return { aspectId: r.id, name: r.name, negPct: r.negPct, quote: quote?.text ?? null };
     });
 }

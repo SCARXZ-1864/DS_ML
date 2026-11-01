@@ -13,11 +13,12 @@ import spacy
 
 from review_intel import config, demo
 from review_intel.aspects.absa import local_absa, local_embedder
+from review_intel.aspects.categories import CATEGORIES, roll_up
 from review_intel.db.connect import connect
 from review_intel.db.load import database_mb, load_shop
 from review_intel.db.rows import shop_rows
 from review_intel.models.predict import load_sentiment
-from review_intel.report import analyze_reviews
+from review_intel.report import analyze_reviews, min_mentions
 
 sys.stdout.reconfigure(encoding="utf-8")
 DEMO_DIR = config.REPO_ROOT / "pipeline" / "demo"
@@ -36,6 +37,9 @@ with connect() as conn:
         report = analyze_reviews(
             reviews, shop["type"], sentiment=sentiment, absa=absa, embed=embed, nlp=nlp
         ).to_dict()
+        # Dozens of narrow terms ("biryani", "minute") → the shop type's few categories.
+        floor = min_mentions(report["kpis"]["reviews"])
+        report = roll_up(report, CATEGORIES[shop["type"]], embed, min_mentions=floor)
         meta = {"id": shop_id, "name": shop["name"], "type": shop["type"], "is_demo": True}
         counts = load_shop(conn, shop_rows(meta, report, model=model_name))
         conn.commit()

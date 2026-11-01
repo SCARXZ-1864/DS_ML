@@ -89,6 +89,25 @@ describe("aspects and complaints", () => {
     expect(items[1].quote).toBeNull();
   });
 
+  it("prefers quoting a review that is negative overall", () => {
+    const upbeat: Review = { ...review("upbeat", "2026-03-04", "wait", "negative"), sentiment: "positive" };
+    const reviews = [upbeat, review("cross", "2026-02-01", "wait", "negative")];
+    expect(topComplaints(aspectRows(aspects, range), reviews, range)[0].quote).toBe("cross about wait");
+    expect(topComplaints(aspectRows(aspects, range), [upbeat], range)[0].quote).toBe("upbeat about wait");
+  });
+
+  it("quotes each review at most once across complaints", () => {
+    const both: Review = {
+      ...review("both", "2026-03-04", "wait", "negative"),
+      aspectMentions: [
+        { aspectId: "wait", start: 0, end: 4, sentiment: "negative" },
+        { aspectId: "food", start: 5, end: 9, sentiment: "negative" },
+      ],
+    };
+    const items = topComplaints(aspectRows(aspects, range), [both, review("food2", "2026-02-02", "food", "negative")], range);
+    expect(items.map((i) => i.quote)).toEqual(["both about wait", "food2 about food"]);
+  });
+
   it("never shows a quote from outside the selected range", () => {
     const reviews = [review("old", "2025-06-01", "wait", "negative")];
     const items = topComplaints(aspectRows(aspects, range), reviews, range);
