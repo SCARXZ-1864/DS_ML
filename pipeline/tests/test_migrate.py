@@ -1,7 +1,7 @@
+from db_helpers import needs_db
+
 from review_intel.db import migrate
 from review_intel.db.connect import read_env
-
-from db_helpers import needs_db
 
 
 def test_pending_lists_unapplied_migrations_in_order(tmp_path):
@@ -33,7 +33,8 @@ def test_migrations_are_all_applied_and_rerunning_applies_nothing(db):
 @needs_db
 def test_every_table_has_row_level_security(db):
     rows = db.execute(
-        "select relname, relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace"
+        "select relname, relrowsecurity from pg_class c"
+        " join pg_namespace n on n.oid = c.relnamespace"
         " where n.nspname = 'public' and c.relkind = 'r'"
     ).fetchall()
     assert rows and all(rls for _, rls in rows), rows
