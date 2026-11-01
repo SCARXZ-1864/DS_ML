@@ -6,7 +6,8 @@
 # --- data & model artifacts (never commit; see RISKS R23) ---
 # Leading slash: only the top-level datasets folder, not code folders such as web/src/lib/data.
 /data/
-models/
+/models/
+pipeline/models/
 *.safetensors
 *.bin
 *.pt

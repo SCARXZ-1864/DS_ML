@@ -1,0 +1,4 @@
+{"business_id": "b-rest", "name": "Saffron House", "categories": "Indian, Restaurants", "city": "Tampa"}
+{"business_id": "b-salon", "name": "Glow Hair", "categories": "Hair Salons, Beauty & Spas", "city": "Tampa"}
+{"business_id": "b-null", "name": "Mystery", "categories": null, "city": "Reno"}
+{"business_id": "b-cafe", "name": "Bean There", "categories": "Coffee & Tea, Restaurants, Cafes", "city": "Reno"}

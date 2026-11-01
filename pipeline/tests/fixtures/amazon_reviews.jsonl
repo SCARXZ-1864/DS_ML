@@ -1,0 +1,3 @@
+{"rating": 5.0, "title": "Work great", "text": "work great. use a new one every month", "asin": "B01", "parent_asin": "P01", "user_id": "U1", "timestamp": 1519317108692, "helpful_vote": 0, "verified_purchase": true}
+{"rating": 2.0, "title": "", "text": "Broke after a week.", "asin": "B02", "parent_asin": "P02", "user_id": "U2", "timestamp": 1664746863446, "helpful_vote": 3, "verified_purchase": true}
+{"rating": 3.0, "title": "Okay", "text": "Does the job, nothing more.", "asin": "B03", "parent_asin": "P01", "user_id": "U3", "timestamp": 1600000000000, "helpful_vote": 0, "verified_purchase": false}

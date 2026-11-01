@@ -223,3 +223,93 @@ Every error hit during development (code, tests, builds, installs, deploys) is l
 - **Files changed:** `web/src/components/share/{labels.ts,LinkList.tsx,ShareForm.tsx,ReportView.tsx}`, `web/src/app/(report)/r/[token]/page.tsx` (moved)
 - **Verified by:** the production screenshot shows "RESTAURANT · LAST 90 DAYS · READ-ONLY REPORT" with no dark band
 - **Attempts:** 1
+
+### 2026-11-01 — Kaggle download failed: CERTIFICATE_VERIFY_FAILED
+- **Milestone:** Part 2, Task 5 (downloading the Yelp files)
+- **Error:** `requests.exceptions.SSLError: HTTPSConnectionPool(host='api.kaggle.com', port=443) … CERTIFICATE_VERIFY_FAILED … self-signed certificate in certificate chain`
+- **Root cause:** Kaspersky Anti-Virus scans HTTPS by re-signing every site with its own root certificate. A check from this laptop showed `CN=Kaspersky Anti-Virus Personal Root Certificate` as the issuer for both api.kaggle.com and huggingface.co. Windows trusts that root, but Python's bundled certificate list (certifi) doesn't, so the Kaggle client refused the connection.
+- **Fix:** added `truststore`. `use_system_certificates()` makes Python verify against the Windows certificate store, so verification stays **on** and is never disabled. The Kaggle download now uses the in-process Python API instead of the CLI subprocess, so the setting applies to it too.
+- **Files changed:** `pipeline/src/review_intel/data/sources.py`, `pipeline/pyproject.toml`, `pipeline/uv.lock`
+- **Verified by:** `KaggleApi().dataset_list_files(...)` succeeded with system certificates, and the downloads restarted
+- **Attempts:** 1
+
+### 2026-11-01 — Language filter dropped short and ALL-CAPS English reviews
+- **Milestone:** Part 2, Task 5 (reading notebook 01's first dev run)
+- **Error:** no crash. The cleaning table showed 3.8% of grocery and 2.8% of appliance reviews dropped as "non-English", against 0.04% of restaurant reviews. On 6,000 real grocery reviews, most of the flagged ones were English (short all-caps praise, two-word "delicious" notes, and a one-line complaint about fake fruit flavour called Norwegian).
+- **Root cause:** `langdetect`'s single best guess is unreliable on short texts, capital letters and repeated phrases, and Amazon has many short reviews. Dropping them would skew the data towards longer, calmer reviews: a silent bias, not an error.
+- **Fix:** detect on lowercase text; keep reviews under 40 characters; count a review as English if it has 2+ very common English words, or if langdetect gives English at least a 20% chance. Real flagged examples became test cases (12 new parametrized tests, including Spanish ones that must still be dropped).
+- **Files changed:** `pipeline/src/review_intel/data/clean.py`, `pipeline/tests/test_clean.py`, `pipeline/pyproject.toml` (ruff: notebook style ignores)
+- **Verified by:** on the same 6,000 reviews, flagged grocery dropped 2.1% → 0.07% (all Spanish); appliances 0.44% (~80% Spanish). 41/41 tests pass.
+- **Attempts:** 3 (best guess on lowercase → common-word check → everyday review words)
+
+### 2026-11-01 — Label leak: Amazon's automatic "Five Stars" titles
+- **Milestone:** Part 2, Task 7 (reading notebook 02's first baseline run)
+- **Error:** no crash. The baseline's strongest words included "two stars", "one star", "five stars" and "three stars".
+- **Root cause:** Amazon gives a review without a title an automatic one ("Five Stars", "One Star", …). The reader joins title and text, so about 9% of appliance and 8% of grocery reviews started with their own label: the title matched the rating 99.8% of the time (8,600 reviews). Any model trained on this partly reads the answer, so its scores are inflated and it learns nothing useful from those reviews. Yelp has no titles.
+- **Fix:** `iter_amazon` drops titles that are only "One Star" … "Five Stars". Star words in the customer's own text are kept. Added `test_automatic_star_titles_are_dropped_because_they_leak_the_label`. The baseline's C range now also goes up to 8, because the leaky run picked the top value, 4.
+- **Files changed:** `pipeline/src/review_intel/data/sources.py`, `pipeline/src/review_intel/models/baseline.py`, `pipeline/tests/test_sources.py`, `pipeline/tests/test_baseline.py`
+- **Verified by:** the test failed first, then passed; 47/47 tests. The dataset is rebuilt and notebooks 01 and 02 re-run (the leaky baseline scored macro F1 0.741).
+- **Attempts:** 1
+
+### 2026-11-01 — Modal refused GPU functions: "Please add a payment method"
+- **Milestone:** Part 2, Task 8 (smoke training run)
+- **Error:** `modal.exception.InvalidError: Please add a payment method to use T4 GPU functions.` This was raised when the function was created, before anything ran, so nothing was charged.
+- **Root cause:** Modal's Starter plan includes $30/month of credits, but GPU functions are only enabled once the workspace has a payment method on file. The CPU-only inference service never needed one.
+- **Fix:** needs the account owner: add a card in Modal (Settings → Usage and Billing), ideally with a workspace budget cap. Meanwhile, Tasks 9–11 continue on CPU where possible.
+- **Files changed:** none
+- **Verified by:** pending the user's billing change
+- **Attempts:** 1 (an account setting, not a code problem)
+
+### 2026-11-01 — A commit with a syntax error (escape sequences in an edit script)
+- **Milestone:** Part 2, Task 11
+- **Error:** `SyntaxError: unterminated string literal` in `aspects/catalogue.py`, committed in b5d7038. The same cause earlier put a backspace character into a regex (`\b` → `\x08`), so "and the" never split clauses.
+- **Root cause:** I edited files with small Python scripts passed through a shell heredoc. Escapes like `"\n"` and `\b` inside those scripts' normal strings were turned into real control characters before being written. The commit went ahead because the command chain piped `pytest` into `tail`, which hid pytest's failing exit code.
+- **Fix:** both lines rewritten with the file editor, which writes text exactly. Commit f30260a; 84/84 tests pass. From now on, edits containing backslash escapes go through the file editor, and test commands are not piped before `&&`.
+- **Files changed:** `pipeline/src/review_intel/aspects/catalogue.py`, `pipeline/src/review_intel/aspects/absa.py`
+- **Verified by:** `test_and_splits_clauses_only_when_a_new_subject_follows` (failed before the regex fix) and the full suite
+- **Attempts:** 2
+
+### 2026-11-01 — Smoke run crashed printing "✓" (Windows console encoding)
+- **Milestone:** Part 2, Task 8
+- **Error:** `UnicodeEncodeError: 'charmap' codec can't encode character '✓'` from Modal's progress output.
+- **Root cause:** with output redirected to a log file, Python on Windows writes in the old cp1252 code page, which has no ✓ character. In a normal terminal it would have worked.
+- **Fix:** `smoke_train.py` switches stdout/stderr to UTF-8 at start-up.
+- **Files changed:** `pipeline/scripts/smoke_train.py`
+- **Verified by:** the re-run printed "✓ Initialized" and got as far as Modal's billing check (still refused: see the entry above).
+- **Attempts:** 1
+
+### 2026-11-01 — Training code would have crashed on the GPU (caught by a CPU test)
+- **Milestone:** Part 2, Task 8 (moving training to Kaggle)
+- **Error:** `TypeError: TrainingArguments.__init__() got an unexpected keyword argument 'group_by_length'`, then `ImportError: Using the Trainer with PyTorch requires accelerate>=1.1.0`.
+- **Root cause:** the training code had never run, because Modal refused GPUs. Transformers 5 renamed `group_by_length=True` to `train_sampling_strategy="group_by_length"`, and the laptop environment lacked `accelerate`, which only the Modal image installed.
+- **Fix:** training moved into `review_intel.models.train`, which runs anywhere. A new test trains a tiny random model on the CPU in seconds; the argument was renamed and `accelerate` was added to the `ml` group.
+- **Files changed:** `pipeline/src/review_intel/models/train.py`, `pipeline/src/review_intel/gpu.py`, `pipeline/tests/test_train.py`, `pipeline/pyproject.toml`
+- **Verified by:** `tests/test_train.py` (3 tests) failed, then passed; full suite green
+- **Attempts:** 2
+
+### 2026-11-01 — Kaggle API surprises: 403 on dataset status, unpacked zip, 409 on notebook title
+- **Milestone:** Part 2, Task 8
+- **Error:** `403 Forbidden` from `GetDatasetStatus`; then `409 Conflict: The requested title "review-intel-train" is already in use by a dataset`.
+- **Root cause:** (1) the dataset status endpoint refuses API tokens even for your own dataset; the upload itself had worked. (2) Kaggle unpacks uploaded zip files into folders, so the notebook's search for `review_intel.zip` would also have failed. (3) Kaggle titles are unique across datasets *and* notebooks.
+- **Fix:** "ready" now means the dataset's file list includes `train.parquet`; the notebook script imports from the unpacked folder (falling back to the zip); the notebook is called `review-intel-gpu`.
+- **Files changed:** `pipeline/src/review_intel/kaggle_job.py`, `pipeline/scripts/kaggle_train.py`, `pipeline/tests/test_kaggle_job.py`
+- **Verified by:** dataset confirmed private with its files listed; the slug test failed, then passed; the smoke run imported the package from the unpacked folder
+- **Attempts:** 3
+
+### 2026-11-01 — Kaggle notebook ran with no internet and no GPU
+- **Milestone:** Part 2, Task 8
+- **Error:** `Failed to resolve 'pypi.org'` → `No matching distribution found for transformers==5.22.1`. A probe notebook then printed `torch 2.11.0+cpu` and `GPU none`, even though the settings asked for both.
+- **Root cause:** Kaggle quietly turns off internet and GPUs in notebooks for accounts without a verified phone number. The weekly quota (30 h) is shown either way.
+- **Fix:** needs the account owner: verify a phone number at kaggle.com → Settings → Phone verification. No code change.
+- **Files changed:** none
+- **Verified by:** after the user verified their phone, the probe printed `torch 2.11.0+cu128 · GPU Tesla T4 · internet ok`; the smoke run then trained (val macro F1 0.622 on 2,001 reviews, 1 epoch, 21 s) and scored all 14,996 test reviews
+- **Attempts:** 2 (an account setting, not a code problem)
+
+### 2026-11-01 — Shop report: skipped reviews shifted results; offsets pointed into text it never returned
+- **Milestone:** Part 2, Task 11 (notebook 05 re-run)
+- **Error:** `ValueError: zip() argument 2 is shorter than argument 1` in notebook 05's review display.
+- **Root cause:** `analyze_reviews` skips empty and non-English reviews, so its results list can be shorter than the input; the notebook paired them by position. A deeper problem was behind it: the cause offsets (`start`, `end`) point into the *cleaned* text (HTML removed, spaces collapsed), which the report didn't return. Highlighting the original text would put the marks in the wrong place whenever cleaning changed anything.
+- **Fix:** each review result now carries `text` (the cleaned text the offsets index), and the notebook uses it. The `id` (`r<n>` = n-th review given) stays the way to match results back to inputs.
+- **Files changed:** `pipeline/src/review_intel/report.py`, `pipeline/tests/test_report.py`, notebook 05
+- **Verified by:** `test_review_results_carry_the_text_their_offsets_point_into` failed (KeyError 'text'), then passed; 14/14 report tests
+- **Attempts:** 1

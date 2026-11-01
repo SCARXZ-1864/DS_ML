@@ -1,6 +1,6 @@
 # RISKS.md — Customer Review Intelligence Tool
 
-> Status: **Phase 2 complete** (2026-10-11); amended 2026-10-12 (Modal, R31). The review checklist at the end still has open questions that matter for M6 and M10.
+> Status: **Phase 2 complete** (2026-10-11); amended 2026-10-12 (Modal, R31); amended 2026-11-01 (multi-domain scope, Modal GPU: R32–R36). The review checklist at the end still has open questions that matter for M6 and M10.
 > This is a living document. When a risk materializes, its incident goes in ERROR_LOG.md and the entry here gets updated.
 
 ## How to read this
@@ -28,7 +28,9 @@ Sorted by likelihood × impact. These are the ones to watch most.
 | R18 | Prompt injection via review text | M | H | M10 |
 | R22 | Secrets committed to git or exposed to the browser | M | H | M0 |
 | R12 | Supabase DB exceeds the 500 MB free limit | M | H | M7 |
-| R06 | Colab GPU unavailable or session dies mid-training | H | M | M4–M6 |
+| R32 | Modal GPU spend overshoots the free credits | M | M | P2-M3–M5 |
+| R34 | One domain dominates the combined metrics | H | M | P2-M2–M3 |
+| R06 | ~~Colab GPU unavailable~~ superseded by R32 | — | — | — |
 | R16 | LLM rate limits / cost / abuse of the public chat | M | H | M10 |
 | R25 | Dependency conflicts (torch/transformers/numpy, Colab vs local) | H | M | M0–M8 |
 | R03 | Data leakage across train/val/test | M | H | M1 |
@@ -47,7 +49,7 @@ All risks are detailed below, grouped by area.
 
 ### R01 — Dataset size vs. laptop memory
 - **L/I:** H / M
-- **What:** the `Cell_Phones_and_Accessories` category is millions of reviews and several GB of compressed JSONL. `pd.read_json(...)` on the whole file can exhaust RAM, and Windows will page or crash.
+- **What:** each source (Amazon grocery and appliances; Yelp's ~5 GB review file) is millions of reviews and several GB of compressed JSONL. `pd.read_json(...)` on the whole file can exhaust RAM, and Windows will page or crash.
 - **Detect:** the loader logs row count and process RSS every N rows. A run that exceeds a configured RSS budget (e.g. 4 GB) aborts with a clear message instead of thrashing.
 - **Mitigate:** stream-parse line by line (gzip + `orjson`) and **reservoir/stratified sample during the stream**, so we never hold more than the sample. Store Parquet with explicit dtypes (category for ids, int8 for rating). Iterate on a 20k dev subset first (PLAN §7).
 - **Fallback:** switch the sampling step to Polars lazy scanning or DuckDB over the JSONL, both of which spill to disk.
@@ -93,6 +95,9 @@ All risks are detailed below, grouped by area.
 ## B. Training and models
 
 ### R06 — Colab GPU limits
+- **Superseded on 2026-11-01:** GPU work runs on Modal. See R32.
+
+### R06-old — Colab GPU limits (historical)
 - **L/I:** H / M
 - **What:** no T4 is available, the session disconnects at the idle or ~12 h cap, or the quota is exhausted mid-run.
 - **Detect:** the notebook's first cell asserts that a GPU is present and prints `nvidia-smi`. The training loop logs to a file on Drive.
@@ -113,19 +118,19 @@ All risks are detailed below, grouped by area.
 
 ### R09 — BERTopic produces unstable or junk topics
 - **L/I:** M / M
-- **What:** UMAP/HDBSCAN are stochastic, so topics change between runs. A huge outlier topic (-1) appears, along with topics like "the, it, phone".
+- **What:** UMAP/HDBSCAN are stochastic, so topics change between runs. A huge outlier topic (-1) appears, along with topics like "the, it, thing".
 - **Detect:** we track the outlier %, review the top-n keywords and representative docs, and run a stability check (rerun with a different seed and compare topic overlap).
 - **Mitigate:**
   - Fixed `random_state` in UMAP.
   - A stopword-aware `CountVectorizer`.
   - `min_topic_size` tuning and `reduce_outliers`.
-  - Domain stopwords such as "phone" and "case".
+  - Domain stopwords per shop type (e.g. "food" for restaurants, "product" for appliances).
   - Save the fitted model and its assignments, so the app shows one frozen run.
 - **Fallback:** merge or label topics manually, and drop junk topics from the UI with an "Other" bucket.
 
 ### R10 — ABSA domain mismatch and aspect coverage
 - **L/I:** M / M
-- **What:** the lexicon misses phrasings ("dies by noon" means battery). The DeBERTa model was trained on restaurant/laptop data and may mislabel phone-accessory language. Sentences mentioning two aspects get confused.
+- **What:** the aspect catalogue misses phrasings ("took forever" means wait time; *2026-11-01: the hand-written lexicon is replaced by the automatic catalogue, see R35*). The DeBERTa model was trained on restaurant/laptop data and may mislabel grocery or appliance language (restaurants are close to its training domain). Sentences mentioning two aspects get confused.
 - **Detect:** the 200-pair hand-labeled validation set (M6). We also log coverage, meaning the % of reviews with ≥1 aspect detected.
 - **Mitigate:** seed the synonyms from BERTopic keywords and n-grams, classify at sentence level (not whole review), keep a confidence threshold, and send low-confidence predictions to "neutral/uncertain".
 - **Fallback:** the LLM-JSON extractor on the validation set for comparison. If it's much better, use it for a capped subset (e.g. the serving corpus only), but only with your OK given the rate limits.
@@ -143,6 +148,41 @@ All risks are detailed below, grouped by area.
 - **Fallback:** ONNX export plus dynamic int8 quantization for DistilBERT/DeBERTa, which cuts size about 2–4× and speeds up CPU inference.
 
 ---
+
+### R32 — Modal GPU spend overshoots the free credits
+- **L/I:** M / M
+- **What:** a hung training run, a loop that retrains on every notebook rerun, or a bigger GPU than needed uses up the $30/month credits.
+- **Detect:** each notebook prints the estimated cost before a GPU call and the elapsed time after it. Modal's dashboard has a spend alert. A test checks that the training config has a timeout and that the estimate is under budget.
+- **Mitigate:** a hard `timeout` on every GPU function (≤ 1 h for training, ≤ 30 min for scoring). T4 GPUs first. Results cached on a Modal Volume by input hash, so reruns don't pay twice. A $5 budget for all of Part 2. A 2,000-row smoke run before the full one.
+- **Fallback:** train on the dev sample (20k) only and say so in the README.
+
+### R33 — Yelp dataset licence
+- **L/I:** L / H
+- **What:** the Yelp Open Dataset allows academic and non-commercial use only. Republishing the reviews, or a commercial launch, would break its terms.
+- **Detect:** the data card names the licence. Git ignores `/data/`.
+- **Mitigate:** only models and metrics are published, never the review text. The demo restaurant's reviews stay local. A real launch would use owners' own reviews (CSV or Google import), not Yelp's.
+- **Fallback:** drop Yelp and use only Amazon domains for anything public.
+
+### R34 — One domain dominates the combined metrics
+- **L/I:** H / M
+- **What:** domains have different label balances (Amazon is mostly positive), so a combined macro F1 can hide a weak domain.
+- **Detect:** every metrics file includes a per-domain table. There's a held-out-domain experiment (train on two domains, test on the third).
+- **Mitigate:** equal sample sizes per domain. Class-weighted loss. The README reports per-domain scores next to the combined one.
+- **Fallback:** a per-domain threshold or a domain token added to the input.
+
+### R35 — Aspect catalogue drift and junk aspects
+- **L/I:** M / M
+- **What:** clustering produces vague aspects ("thing", "experience") or splits one idea in two ("staff" vs. "server"). Or a catalogue rebuilt later changes the aspect ids the app depends on.
+- **Detect:** notebook 04 lists every catalogue aspect with examples and counts for a human read. Ids are slugs of names, saved in a versioned JSON.
+- **Mitigate:** a stoplist of vague nouns, a minimum mention count, merging by embedding similarity, and catalogues built once and saved. They're only rebuilt deliberately, with the change noted.
+- **Fallback:** a hand-edited override file that renames or merges catalogue entries.
+
+### R36 — Kaggle or Hugging Face token leak
+- **L/I:** M / M
+- **What:** a token pasted into chat, printed by a notebook or committed by mistake.
+- **Detect:** the gitleaks pre-commit hook and CI scan. Notebooks are reviewed for printed environment variables before commit.
+- **Mitigate:** tokens live only in the user profile (`C:\Users\HP\.kaggle\`, user environment variables) and Modal secrets, never in the repo or the mirror. Notebooks never print the environment. A token that appears in chat is treated as exposed and rotated after use.
+- **Fallback:** revoke the token on kaggle.com or huggingface.co and create a new one.
 
 ## C. Data store
 

@@ -1,0 +1,4 @@
+{"review_id": "r1", "user_id": "u1", "business_id": "b-rest", "stars": 5.0, "useful": 1, "funny": 0, "cool": 0, "text": "Best biryani in town.", "date": "2018-07-07 22:09:11"}
+{"review_id": "r2", "user_id": "u2", "business_id": "b-salon", "stars": 1.0, "useful": 0, "funny": 0, "cool": 0, "text": "Ruined my hair.", "date": "2019-01-02 10:00:00"}
+{"review_id": "r3", "user_id": "u3", "business_id": "b-cafe", "stars": 3.0, "useful": 0, "funny": 0, "cool": 0, "text": "Coffee was fine, service slow.", "date": "2020-03-04 08:30:00"}
+{"review_id": "r4", "user_id": "u4", "business_id": "b-null", "stars": 4.0, "useful": 0, "funny": 0, "cool": 0, "text": "Nice place.", "date": "2021-05-06 12:00:00"}

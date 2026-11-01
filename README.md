@@ -1,13 +1,15 @@
 # Customer Review Intelligence Tool
 
-A web app that analyzes ~150k Amazon product reviews and shows a business:
+A web app that analyzes a shop's customer reviews and shows its owner:
 
 1. **Overall sentiment** and how it changes over time
 2. **Main topics** customers talk about, discovered automatically (plus a "top complaints" view)
 3. **Aspect-based sentiment**, e.g. *battery: negative, screen: positive*
 4. **A chat box** that answers plain-English questions with **citations to real reviews** (RAG)
 
-> **Status:** 🚧 Part 1 (frontend with mock data): **checkpoint 3 done**. Mock login and signup, My shops, Add shop, Settings, a CSV upload wizard with live processing, Sources with a simulated Google Business Profile connection, Alerts, shareable read-only reports and Compare, on top of checkpoints 1–2. Log in as `owner@demo.test` to see the sample owner shops. See [the spec](docs/superpowers/specs/2026-10-30-frontend-mock-design.md).
+The models were trained on 150k public reviews: Yelp restaurants, and Amazon grocery and appliance products.
+
+> **Status:** 🚧 **Part 2 (ML core) done**: a fine-tuned DistilBERT sentiment model (test macro F1 0.761 vs 0.732 for the baseline), aspect catalogues with cause clauses, and `analyze_reviews`, which builds a shop's full report. See [the design](docs/superpowers/specs/2026-10-31-part2-ml-core-design.md), [the plan](docs/superpowers/plans/2026-11-01-part2-ml-core.md) and the results below. Part 1 (frontend with mock data) reached **checkpoint 3**: mock login and signup, My shops, Add shop, Settings, a CSV upload wizard, Sources with a simulated Google Business Profile connection, Alerts, shareable read-only reports and Compare. Log in as `owner@demo.test` to see the sample owner shops. See [the spec](docs/superpowers/specs/2026-10-30-frontend-mock-design.md).
 
 | Doc | What's in it |
 |-----|--------------|
@@ -75,18 +77,38 @@ INFERENCE_URL=http://127.0.0.1:7860 pnpm dev
 `web/src/lib/data/mock/`. Pages only use the `DataSource` interface in `web/src/lib/data/index.ts`, so later
 parts swap in the real backend by changing one line.
 
+## Re-running the ML notebooks
+
+From `pipeline/`, with the data downloaded (notebook 01 does that; it needs your own Kaggle token in `~/.kaggle`):
+
+| Notebook | Runs on | Notes |
+|----------|---------|-------|
+| `01_data` | laptop | downloads Yelp and Amazon, builds `data/interim/reviews.parquet` (150k reviews) |
+| `02_baseline` | laptop, ~5 min | TF-IDF + logistic regression |
+| `03_distilbert` | laptop, seconds | **first** run `uv run python scripts/kaggle_train.py full` (~50 min on a free Kaggle T4; needs a phone-verified Kaggle account). The notebook evaluates the downloaded results. The script refuses to retrain if results exist; add `--force` to retrain. |
+| `04_aspects` | laptop, ~5 min | builds the aspect catalogues in `pipeline/catalogues/` and checks aspect sentiment |
+| `05_shop_report` | laptop, ~10 min | the full report for three example shops |
+
+Run one with `uv run jupyter nbconvert --to notebook --execute --inplace notebooks/<name>.ipynb`.
+
+### Publishing safely
+
+This repo is public, and the Yelp and Amazon licences don't allow republishing review text. A re-run notebook shows example reviews in its outputs, so before committing run `uv run python scripts/strip_review_text.py` (from `pipeline/`). It replaces those outputs with a short note. `tests/test_no_review_text.py` fails if any are left. The aspect-sentiment check labels are committed without the clauses they judge; the full file stays local in `data/processed/absa_pairs_with_text.csv`.
+
 ## Results
 
-_Filled in from M3 onwards._
+Sentiment on 14,996 held-out test reviews from shops never seen in training (restaurants, grocery, appliances).
+Details: `pipeline/notebooks/02_baseline.ipynb` and `03_distilbert.ipynb`.
 
 | Model | Macro F1 (test) | Neg F1 | Neu F1 | Pos F1 | Notes |
 |-------|-----------------|--------|--------|--------|-------|
-| TF-IDF + LogReg (baseline) | — | — | — | — | M3 |
-| DistilBERT (fine-tuned) | — | — | — | — | M4 |
+| TF-IDF + LogReg (baseline) | 0.732 | 0.812 | 0.445 | 0.941 | accuracy 87.2%; laptop CPU |
+| DistilBERT (fine-tuned) | **0.761** | **0.837** | **0.492** | **0.954** | accuracy 88.7%; 47 free GPU-minutes on Kaggle (T4) |
+| DistilBERT, never saw appliances | 0.699 (appliances only) | — | — | — | baseline trained *with* appliances: 0.688 |
 
 | Component | Metric | Value |
 |-----------|--------|-------|
-| ABSA (200 hand-labeled pairs) | Accuracy / Macro F1 | — (M6) |
+| ABSA (200 hand-labeled pairs, labelled by Claude) | Accuracy / Macro F1 | 72.5% / 0.724 (neutral F1 0.60) |
 | RAG (20-question eval) | Citation validity / faithfulness / refusals | — (M10) |
 
 ## Screenshots

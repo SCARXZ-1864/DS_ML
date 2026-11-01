@@ -1,7 +1,7 @@
 # PLAN.md — Customer Review Intelligence Tool
 
 > Status: **APPROVED 2026-10-11** (Phase 1). Decisions resolved in §7.
-> Last updated: 2026-10-14
+> Last updated: 2026-11-01 (scope update: see §0.1)
 
 ---
 
@@ -14,6 +14,27 @@
 
 Your proposed split is right in shape. Section 1.2 lists what I changed and why.
 
+## 0.1 Scope update (2026-10-30 and 2026-11-01)
+
+The project widened after this plan was approved. Where this section and older text disagree, **this section wins**.
+
+- **Any shop type**, not one Amazon category. There are three demo domains: **restaurants** (Yelp Open Dataset via Kaggle, `Restaurants` category), **groceries** and **appliances** (Amazon Reviews 2023: `Grocery_and_Gourmet_Food`, `Appliances`).
+- **Aspects are discovered automatically.** Clustering builds a saved **aspect catalogue** per domain (plus a general one). Each shop's reviews are matched to it, and phrases that match nothing become "new themes". This replaces the hand-written `aspects.yaml` of the old M6.
+- **Owner SaaS:** accounts, multiple shops per owner, CSV upload with history, email alerts, shareable read-only reports, and Compare.
+- **Review sources:** CSV upload; **Google Business Profile import** (owner connects; daily sync; needs Google's API approval); a public **"search any shop" preview** (Places API, about 5 reviews, labelled as a preview). No scraping.
+- **GPU work runs on Modal**, called from notebooks, instead of Colab or Kaggle. At most **$5** of the $30 monthly free credits for Part 2.
+- **The work is built in 7 parts:**
+  1. **Frontend with mock data** (checkpoints 1–3 done; checkpoint 4 open).
+  2. **ML core** ← in progress.
+  3. Multi-shop database with row-level security.
+  4. Upload and processing jobs.
+  5. SaaS layer (real auth, email alerts, report links).
+  6. Per-shop chat (RAG).
+  7. Polish and deploy.
+- **Where the detail lives:**
+  - Frontend: `docs/superpowers/specs/2026-10-30-frontend-mock-design.md`.
+  - ML core: `docs/superpowers/specs/2026-10-31-part2-ml-core-design.md`, and the plan `docs/superpowers/plans/2026-11-01-part2-ml-core.md`.
+
 ---
 
 ## 1. Architecture
@@ -22,11 +43,11 @@ Your proposed split is right in shape. Section 1.2 lists what I changed and why.
 
 ```mermaid
 flowchart LR
-  subgraph OFF["Offline: local laptop + Colab/Kaggle GPU"]
-    RAW[("Amazon Reviews 2023<br/>one category, raw JSONL")] --> CLEAN["clean + sample<br/>(parquet)"]
+  subgraph OFF["Offline: laptop notebooks + Modal GPU"]
+    RAW[("Amazon Reviews 2023: grocery, appliances<br/>+ Yelp restaurants (Kaggle)")] --> CLEAN["clean + sample<br/>(parquet)"]
     CLEAN --> SENT["Sentiment<br/>TF-IDF+LR baseline<br/>DistilBERT fine-tune"]
     CLEAN --> EMB["Embeddings<br/>bge-small-en-v1.5"]
-    EMB --> TOP["BERTopic<br/>all reviews + negative-only"]
+    EMB --> TOP["Aspect catalogue<br/>phrase clustering per domain"]
     CLEAN --> ABSA["Aspect sentiment<br/>DeBERTa-v3 ABSA"]
     SENT --> LOAD["loader<br/>(idempotent upsert)"]
     TOP --> LOAD
@@ -265,6 +286,16 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 - Check the free-tier limits in §6 against the live pricing pages and record any differences.
 - **DoD:** `uv run pytest` (pipeline and inference) and `pnpm test && pnpm build` (web) pass locally and in GitHub Actions. gitleaks passes. A fresh clone plus the README instructions reproduces this.
 
+> **Superseded on 2026-11-01.** M1–M6 below are kept for history. Part 2 replaces them with five milestones in
+> `docs/superpowers/plans/2026-11-01-part2-ml-core.md`:
+> - **P2-M1, data:** notebook 01; three domains; grouped splits.
+> - **P2-M2, baseline:** notebook 02.
+> - **P2-M3, DistilBERT on Modal:** notebook 03; held-out-domain test.
+> - **P2-M4, aspects:** notebook 04; catalogue, aspect sentiment, causes, validation.
+> - **P2-M5, shop report:** notebook 05; `analyze_reviews`.
+>
+> BERTopic (old M5) is deferred.
+
 ### M1 — Data acquisition, cleaning, labeling
 - Download one Amazon Reviews 2023 category, stream-parse it (never loading the full file into RAM), and draw a **time-stratified sample of ~150k reviews**.
 - Cleaning: drop empty and very short reviews, strip HTML, normalize whitespace, deduplicate exact and near-exact texts, apply a light English filter, and parse timestamps.
@@ -340,11 +371,11 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 | 1. Download | laptop | HF dataset files → `data/raw/*.jsonl.gz` | — |
 | 2. Clean + sample + label + split | laptop | raw → `interim/reviews.parquet` (~150k rows: id, product, rating, title, text, timestamp, label, split) | — |
 | 3. Baseline train/eval | laptop | parquet → metrics JSON, confusion PNG | About page: results table |
-| 4. DistilBERT fine-tune | Colab/Kaggle | parquet → model on HF Hub + metrics | About page; "Try it" predictions |
-| 5. Batch predict | Colab | model + parquet → `sentiment_label`, `sentiment_score` per review | Overview: model-predicted sentiment trend |
-| 6. Embed | Colab | text → 150k × 384 float vectors (`.npy`) | (feeds 7 and 9) |
-| 7. Topics | Colab/laptop | embeddings + text → topics, review→topic map, monthly counts | Topics page, "Top complaints" |
-| 8. ABSA | Colab | sentences × aspect lexicon → aspect_mentions (aspect, polarity, confidence) | Aspects page + drill-down |
+| 4. DistilBERT fine-tune | Modal GPU | parquet → model on HF Hub + metrics | About page; "Try it" predictions |
+| 5. Batch predict | Modal GPU | model + parquet → `sentiment_label`, `sentiment_score` per review | Overview: model-predicted sentiment trend |
+| 6. Embed | Modal GPU | text → 150k × 384 float vectors (`.npy`) | (feeds 7 and 9) |
+| 7. Aspect catalogue | laptop + Modal GPU | embeddings + text → topics, review→topic map, monthly counts | Topics page, "Top complaints" |
+| 8. ABSA | Modal GPU | sentences × aspect lexicon → aspect_mentions (aspect, polarity, confidence) | Aspects page + drill-down |
 | 9. Aggregate | laptop | all of the above → monthly sentiment, aspect summary, stats summary | Overview KPIs and charts |
 | 10. Select serving corpus | laptop | 150k → ~50k stratified by month × label × topic (+ every topic's representative reviews) | Chat citations, drill-down reviews |
 | 11. Load | laptop → Supabase | parquet → Postgres tables (vectors as `halfvec`) | Everything in the dashboard |
@@ -366,7 +397,7 @@ Each milestone ends with: a summary, run/verify commands, a README update and sm
 | **Modal (Starter, amended 2026-10-12)** | **$30/month free compute credits**; CPU ≈ $0.0000131/core-s, memory ≈ $0.00000222/GiB-s; scales to zero; cold start ~10–30 s (+ model load) | 1 core + 2–3 GiB, only while serving. ~5 container-hours/month at portfolio traffic ≈ **under $1 of the $30** | `scaledown_window=300`, `min_containers=0`; models baked into the image; ABSA lazy-loaded; warm-up ping on page open; retry + "waking up" UI; dashboard independent of the inference service. A spend alert in the Modal dashboard |
 | **Hugging Face Hub** | Free public model and dataset repos | 1 model repo (~260 MB) | Public repo with a model card. We **don't re-upload the Amazon dataset** (licence), only the model |
 | **Vercel (Hobby)** | **Non-commercial use only**; ~100 GB transfer/month; capped function invocations and CPU-hours; 250 MB function bundle; function timeout limits (verify current max); cron jobs at **daily frequency at most** | Low (portfolio traffic) | No ML libraries in functions (bundle stays small); routes aim for < 10 s, chat streams; server-component data cached with revalidation; exactly 1 daily cron |
-| **Google Colab (Free)** | T4 GPU when available; sessions up to ~12 h, idle disconnects ~90 min; **usage not guaranteed** | DistilBERT: ~45–90 min. Embeddings: ~10 min. ABSA: ~20–40 min | Checkpoint to Google Drive every epoch; resumable scripts; **Kaggle (≈30 GPU-h/week) as fallback** |
+| **Google Colab (Free)**: *no longer used; GPU work moved to Modal on 2026-11-01* | T4 GPU when available; sessions up to ~12 h, idle disconnects ~90 min; **usage not guaranteed** | DistilBERT: ~45–90 min. Embeddings: ~10 min. ABSA: ~20–40 min | Checkpoint to Google Drive every epoch; resumable scripts; **Kaggle (≈30 GPU-h/week) as fallback** |
 | **GitHub Actions** | Unlimited minutes for **public** repos (2,000 min/month for private) | ~3–5 min per CI run | Public portfolio repo; dependency caching; CI tests use stub models (no torch download) |
 | **LLM API** | Depends on provider (see §7). Free tiers have requests/min and requests/day caps | ~2–3k input + ~400 output tokens per chat turn | Our own caps set *below* provider limits: per-IP rate limit (e.g. 10/hour) + global daily cap (e.g. 300/day) in Postgres; retry with backoff on 429; friendly "daily demo limit reached" message |
 
@@ -391,16 +422,21 @@ The plan was approved without overrides, so the recommended defaults apply. Any 
 
 | # | Decision | Choice | Locked by |
 |---|----------|--------|-----------|
-| 1 | Dataset/category | **Amazon Reviews 2023, `Cell_Phones_and_Accessories`** | M1 |
+| 1 | Dataset/category | ~~Amazon Reviews 2023, `Cell_Phones_and_Accessories`~~ **Superseded by #8** | M1 |
 | 2 | LLM provider | **Google Gemini Flash free tier** behind the Vercel AI SDK. Claude Haiku 4.5 is an optional paid A/B later, and only if you approve it | M10 |
 | 3 | Repo location | **Move to `C:\dev\review-intel`** (out of OneDrive) as the first step of M0 | M0 |
 | 4 | Early walking-skeleton deploy | **Yes**: hello-world inference service (Modal) and Vercel page in M0 | M0 |
 | 5 | GitHub repo visibility | **Public** | M0 |
 | 6 | Sample sizes | **~150k analysis set / ~50k serving corpus**, configurable in `config.py`. Development iterates on a 20k subset first | M1 |
+| 8 | Datasets *(2026-10-30 / 2026-11-01)* | Yelp Open Dataset via Kaggle (restaurants) + Amazon Reviews 2023 grocery and appliances; ~50k per domain | P2-M1 |
+| 9 | Training GPU *(2026-11-01)* | Modal, called from notebooks; at most $5 of credits for Part 2 | P2-M3 |
+| 10 | Aspects *(2026-11-01)* | Automatic: per-domain aspect catalogue + per-shop matching + new themes | P2-M4 |
+| 11 | Aspect sentiment *(2026-11-01)* | Pretrained `yangheng/deberta-v3-base-absa-v1.1`, validated on 200 labelled pairs | P2-M4 |
+| 12 | Review sources *(2026-10-31)* | CSV upload, Google Business Profile import, Places search preview; no scraping | Parts 1, 4, 5 |
 | 7 | Inference host *(amended 2026-10-12)* | **Modal** (Starter, $30/month free credits) instead of an HF Docker Space. HF now requires PRO for Gradio/Docker Spaces on new free accounts. The HF **Hub** is still used for model storage | M0 |
 
 ---
 
 ## 8. What happens next
 
-Phases 1–3 are done and **M0 (Foundations)** is nearly finished. Progress is tracked in the README status line and in each milestone's commits. Next comes **M1: data acquisition, cleaning and labeling**.
+Phases 1–3 and M0 are done. Part 1 (frontend with mock data) reached checkpoint 3. **Part 2, the ML core, is in progress**, following `docs/superpowers/plans/2026-11-01-part2-ml-core.md`. Progress is tracked in the README status line and in each milestone's commits.

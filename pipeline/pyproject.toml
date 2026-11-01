@@ -8,6 +8,49 @@ dependencies = []
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
+data = [
+    "datasets>=5.1.0",
+    "kaggle>=2.2.5",
+    "langdetect>=1.0.9",
+    "pandas>=3.1.0",
+    "pyarrow>=26.0.0",
+    "tabulate>=0.10.0",
+    "truststore>=0.10.5",
+]
+ml = [
+    "accelerate>=1.15.0",
+    "en-core-web-sm",
+    "huggingface-hub>=2.4.0",
+    "matplotlib>=3.11.2",
+    "modal>=1.6.3",
+    "protobuf>=7.36.2",
+    "scikit-learn>=1.9.1",
+    "sentence-transformers>=6.2.0",
+    "sentencepiece>=0.2.2",
+    "spacy>=3.8.18",
+    "torch>=2.15.0",
+    "transformers>=5.22.1",
+]
+nb = [
+    "ipykernel>=7.4.0",
+    "jupyter>=1.1.1",
+    "nbconvert>=7.17.2",
+]
+
+[tool.uv]
+# Install everything by default: the notebooks need data, ML and Jupyter packages.
+default-groups = ["dev", "data", "ml", "nb"]
+
+# The laptop has no GPU, so PyTorch comes from the CPU-only index (~200 MB instead of
+# ~2.5 GB). GPU builds are installed inside the Modal image instead.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
 
 [build-system]
 requires = ["hatchling"]
@@ -26,3 +69,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks favour short plotting one-liners and wide tables over line-length rules.
+"notebooks/*.ipynb" = ["E501", "E702", "E741"]
