@@ -1,6 +1,6 @@
 import type { DataSource } from "../index";
 import { deleteAlertRule, listAlertEvents, listAlertRules, markAlertsRead, saveAlertRule } from "./alerts";
-import { aspectInRange, normalizeRange, sliceMonths, summarize, toKpis } from "../derive";
+import { aspectsInRange, overviewInRange } from "../derive";
 import { composeAnswer, streamChunks } from "./ask";
 import { compareShops } from "./compare";
 import { predictText } from "./predict";
@@ -11,7 +11,7 @@ import { createShop, EMPTY_PAGE, findShop, getStore, listShopsFor } from "./stor
 import { getUploadAt, listUploadsAt, startUploadAt } from "./uploads";
 
 // Pause between streamed chunks, so the UI shows the answer arriving word by word.
-const STREAM_DELAY_MS = 30;
+export const STREAM_DELAY_MS = 30;
 
 // Shops and owner state live in the store (seeded once per server process, so every run starts the same).
 const entry = (id: string) => getStore().entries.get(id);
@@ -44,20 +44,12 @@ export const mockDataSource: DataSource = {
 
   async getOverview(id, range) {
     const e = entry(id);
-    if (!e) return null;
-    if (!range) return e.overview;
-    const r = normalizeRange(e.overview.monthly, range);
-    const monthly = sliceMonths(e.overview.monthly, r);
-    const s = summarize(monthly);
-    return { ...e.overview, monthly, kpis: toKpis(s), starMix: s.starMix };
+    return e ? overviewInRange(e.overview, range) : null;
   },
 
   async getAspects(id, range) {
     const e = entry(id);
-    if (!e) return null;
-    if (!range) return e.aspects;
-    const r = normalizeRange(e.overview.monthly, range);
-    return e.aspects.map((a) => aspectInRange(a, r));
+    return e ? aspectsInRange(e.aspects, e.overview.monthly, range) : null;
   },
 
   async getReviewsByIds(id, ids) {

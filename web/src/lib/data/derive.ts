@@ -1,5 +1,5 @@
 import { fmtMonth } from "@/lib/format";
-import type { Aspect, Headline, Kpis, MonthPoint, Review } from "./schemas";
+import type { Aspect, Headline, Kpis, MonthPoint, Overview, Review } from "./schemas";
 
 // Pure functions for time ranges. They are safe to import in client components
 // (no data, no Node APIs), and the mock data source uses them too, so the server
@@ -109,6 +109,21 @@ export function aspectInRange(a: Aspect, range: MonthRange): Aspect {
     negPct: round1(s.negativePct ?? 0),
     neuPct: round1(s.neutralPct ?? 0),
   };
+}
+
+/** The overview for part of the shop's history (all of it when `range` is missing). */
+export function overviewInRange(o: Overview, range?: Partial<MonthRange>): Overview {
+  if (!range) return o;
+  const monthly = sliceMonths(o.monthly, normalizeRange(o.monthly, range));
+  const s = summarize(monthly);
+  return { ...o, monthly, kpis: toKpis(s), starMix: s.starMix };
+}
+
+/** Aspects for part of the shop's history; `shopMonths` (the shop's monthly series) bounds the range. */
+export function aspectsInRange(aspects: Aspect[], shopMonths: MonthPoint[], range?: Partial<MonthRange>): Aspect[] {
+  if (!range) return aspects;
+  const r = normalizeRange(shopMonths, range);
+  return aspects.map((a) => aspectInRange(a, r));
 }
 
 export function aspectRows(aspects: Aspect[], range: MonthRange): AspectRow[] {

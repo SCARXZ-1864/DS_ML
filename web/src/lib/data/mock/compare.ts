@@ -1,14 +1,19 @@
-import type { Comparison } from "../schemas";
+import type { Aspect, Comparison, Shop } from "../schemas";
 import { getStore } from "./store";
+
+export type CompareSide = { shop: Shop; aspects: Aspect[] };
 
 /**
  * Two shops side by side, aspect by aspect. Aspects are matched by name (case-insensitive),
  * since each shop's aspects are found from its own reviews. net = % positive − % negative.
  */
 export function compareShops(ids: [string, string]): Comparison | null {
-  const entries = ids.map((id) => getStore().entries.get(id));
-  if (!entries[0] || !entries[1]) return null;
-  const [a, b] = entries as [NonNullable<(typeof entries)[0]>, NonNullable<(typeof entries)[0]>];
+  const [a, b] = ids.map((id) => getStore().entries.get(id));
+  return a && b ? compareSides(a, b) : null;
+}
+
+/** The same comparison for two shops' aspects, wherever they were loaded from. */
+export function compareSides(a: CompareSide, b: CompareSide): Comparison {
 
   const rows = new Map<string, Comparison["rows"][number]>();
   [a, b].forEach((entry, side) => {

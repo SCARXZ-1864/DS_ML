@@ -1,4 +1,6 @@
 import type { MonthRange } from "./derive";
+import { databaseFromEnv } from "./db/client";
+import { withDatabase } from "./db/compose";
 import { mockDataSource } from "./mock";
 import type {
   AlertEvent, AlertRule, Aspect, ChatChunk, Comparison, GoogleLocation, NewShopInput, Overview, Prediction, Review, Report, ReviewPage, ReviewQuery, ShareInput, ShareLink, Shop, Source,
@@ -57,8 +59,10 @@ export interface DataSource {
   compare(ids: [string, string]): Promise<Comparison | null>;
 }
 
-// The one line later parts change: swap the mock for the real API-backed source.
-export const data: DataSource = mockDataSource;
+// Demo shops come from the database when it is configured (Part 3); everything else is still the
+// mock until later parts replace it.
+const db = databaseFromEnv();
+export const data: DataSource = db ? withDatabase(mockDataSource, db) : mockDataSource;
 
 export type { MonthRange } from "./derive";
 export type * from "./schemas";
