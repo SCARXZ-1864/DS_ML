@@ -4,6 +4,8 @@ export type ShopNavItem = { slug: string; label: string; ownerOnly?: boolean };
 // appear only to the shop's owner, under "Manage".
 export const SHOP_NAV: ShopNavItem[] = [
   { slug: "overview", label: "Overview" },
+  { slug: "fix-first", label: "What to fix first" },
+  { slug: "issues", label: "Issues" },
   { slug: "topics", label: "Topics" },
   { slug: "aspects", label: "Aspects" },
   { slug: "reviews", label: "Reviews" },

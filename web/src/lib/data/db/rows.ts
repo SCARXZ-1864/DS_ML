@@ -29,6 +29,8 @@ export type AspectRow = {
   neu_pct: number;
   monthly: MonthPoint[];
   example_review_ids: string[];
+  /** From Part 2; each also carries an "example" clause the screens don't use. */
+  reasons?: { text: string; tone: Tone; count: number; quoteReviewIds: string[] }[];
 };
 export type ReviewRow = {
   id: string;
@@ -42,7 +44,7 @@ export type ReviewRow = {
 
 export const SHOP_COLUMNS = "id, name, type, is_demo, owner_id, review_count, date_from, date_to, last_upload_at, headline, top_complaints";
 export const MONTH_COLUMNS = "month, count, pos, neg, neu, stars";
-export const ASPECT_COLUMNS = "id, name, grp, is_new, mentions, pos_pct, neg_pct, neu_pct, monthly, example_review_ids";
+export const ASPECT_COLUMNS = "id, name, grp, is_new, mentions, pos_pct, neg_pct, neu_pct, monthly, example_review_ids, reasons";
 export const REVIEW_COLUMNS = "id, date, stars, text, sentiment, confidence, aspect_mentions";
 
 const monthOf = (d: Date) => d.toISOString().slice(0, 7);
@@ -79,6 +81,9 @@ export function toAspect(row: AspectRow): Aspect {
     monthly: row.monthly,
     ...(row.is_new ? { isNew: true } : {}),
     exampleReviewIds: row.example_review_ids,
+    ...(row.reasons?.length
+      ? { reasons: row.reasons.map(({ text, tone, count, quoteReviewIds }) => ({ text, tone, count, quoteReviewIds })) }
+      : {}),
   };
 }
 

@@ -10,7 +10,13 @@ export default function Home() {
     <main className="mx-auto max-w-3xl px-6 py-20">
       <p className="label text-accent">Review Intelligence · preview build</p>
       <h1 className="mt-3 font-serif text-4xl leading-tight">Find out what your customers actually complain about.</h1>
-      <p className="mt-4 text-muted">Pick a shop to open its overview.</p>
+      <p className="mt-4 text-muted">Upload your reviews as a CSV, or pick a demo shop to see what you get.</p>
+      <Link
+        href="/upload"
+        className="mt-6 inline-block bg-accent px-4 py-2 font-semibold text-bg transition-opacity hover:opacity-90"
+      >
+        Upload reviews (CSV)
+      </Link>
       <Suspense fallback={<div className="mt-8 h-40" aria-hidden />}>
         <ShopList />
       </Suspense>

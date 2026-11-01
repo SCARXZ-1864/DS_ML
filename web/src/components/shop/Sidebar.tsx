@@ -74,6 +74,12 @@ export function Sidebar({ shops, current, canManage, user, logoutAction }: Props
           )}
         </nav>
       )}
+      <Link
+        href="/upload"
+        className="mt-4 block border border-accent px-2.5 py-1.5 text-center text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-bg"
+      >
+        Upload reviews
+      </Link>
       <div className="mt-auto border-t border-line pt-3">
         {user ? (
           <nav aria-label="Account">

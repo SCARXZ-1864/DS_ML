@@ -7,8 +7,8 @@ export function DemoBar({ shop }: { shop: Shop }) {
   return (
     <div role="note" className="-mx-4 flex flex-wrap items-center justify-between gap-2 bg-accent px-4 py-2 text-sm text-bg md:-mx-8 md:px-8">
       <span>You&apos;re viewing a demo shop with public reviews.</span>
-      <Link href="/signup" className="font-semibold underline-offset-2 hover:underline">
-        Analyse your own reviews →
+      <Link href="/upload" className="font-semibold underline-offset-2 hover:underline">
+        Upload your own reviews →
       </Link>
     </div>
   );

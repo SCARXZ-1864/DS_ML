@@ -52,6 +52,8 @@ describe("database rows → data contract", () => {
       monthly: [{ month: "2026-03", count: 6, pos: 1, neg: 4, neu: 1, stars: null }], exampleReviewIds: ["r2"],
     });
     expect(toAspect({ ...row, grp: "service", is_new: false })).toMatchObject({ group: "service" });
+    const reasons = [{ text: "forty minutes", tone: "negative" as const, count: 2, quoteReviewIds: ["r2"], example: "waited forty minutes" }];
+    expect(toAspect({ ...row, reasons }).reasons).toEqual([{ text: "forty minutes", tone: "negative", count: 2, quoteReviewIds: ["r2"] }]);
     expect(toAspect({ ...row, is_new: false })).not.toHaveProperty("isNew");
   });
 

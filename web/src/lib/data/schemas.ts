@@ -73,6 +73,11 @@ export const AspectSchema = z.object({
   monthly: z.array(MonthPointSchema),
   isNew: z.boolean().optional(),
   exampleReviewIds: z.array(z.string()),
+  // The words behind the tone ("forty minutes"), each with how many reviews use it. Optional: only
+  // the analysed shops have them, not the hand-made mock ones.
+  reasons: z
+    .array(z.object({ text: z.string().min(1), tone: ToneSchema, count, quoteReviewIds: z.array(z.string()) }))
+    .optional(),
 });
 
 export const ReviewSchema = z

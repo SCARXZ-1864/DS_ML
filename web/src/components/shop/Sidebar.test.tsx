@@ -25,6 +25,21 @@ describe("Sidebar", () => {
     expect(link.getAttribute("aria-current")).toBe("page");
   });
 
+  it("links to the issue pages right after the overview", () => {
+    render(<Sidebar shops={[fresh]} current={fresh} canManage={false} user={null} />);
+    const nav = screen.getByRole("navigation", { name: "Shop pages" });
+    const names = [...nav.querySelectorAll("a")].map((a) => a.textContent);
+    expect(names.slice(0, 3)).toEqual(["Overview", "What to fix first", "Issues"]);
+    expect(screen.getByRole("link", { name: "Issues" }).getAttribute("href")).toBe("/shops/fresh/issues");
+  });
+
+  it("offers review upload to everyone, logged in or not", () => {
+    const { rerender } = render(<Sidebar shops={[fresh]} current={fresh} canManage={false} user={null} />);
+    expect(screen.getByRole("link", { name: "Upload reviews" }).getAttribute("href")).toBe("/upload");
+    rerender(<Sidebar shops={[fresh]} current={null} canManage={false} user={{ name: "Ann" }} />);
+    expect(screen.getByRole("link", { name: "Upload reviews" }).getAttribute("href")).toBe("/upload");
+  });
+
   it("shows no shop navigation when the shop is unknown", () => {
     render(<Sidebar shops={[fresh]} current={null} canManage={false} user={null} />);
     expect(screen.queryByRole("navigation", { name: "Shop pages" })).toBeNull();

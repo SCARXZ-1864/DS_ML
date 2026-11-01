@@ -22,6 +22,11 @@ describe("DemoBar", () => {
     expect(screen.getByRole("note").textContent).toContain("You're viewing a demo shop");
   });
 
+  it("invites visitors to upload their own reviews", () => {
+    render(<DemoBar shop={base} />);
+    expect(screen.getByRole("link", { name: /Upload your own reviews/ }).getAttribute("href")).toBe("/upload");
+  });
+
   it("renders nothing for an owner's shop", () => {
     const { container } = render(<DemoBar shop={{ ...base, isDemo: false }} />);
     expect(container.innerHTML).toBe("");
